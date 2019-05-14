@@ -1,0 +1,24 @@
+#include <math.h>
+#include <fstream>
+
+
+
+void adaptF(double **f, double **adaptF, int  **G, int K, double **q, int N, int M, int withoutInd, int nIts, double **aNorm, double **bNorm){
+
+
+
+}
+
+
+
+void calcRes(int firstInd,){
+
+  
+}
+
+
+
+void correlateRes(double *cor){
+
+
+}

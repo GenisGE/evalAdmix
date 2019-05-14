@@ -1,0 +1,23 @@
+-*- mode: compilation; default-directory: "~/admix_evaluation/implementation_c/evaluateAdmix/" -*-
+Compilation started at Thu Mar 28 16:49:26
+
+make -k 
+gcc -c adapt_f.cpp -O3
+adapt_f.cpp: In function ‘void getpA(double***, double***, double**, double**, double**, double**, double**, double**, int, int, int)’:
+adapt_f.cpp:28:153: warning: format ‘%f’ expects argument of type ‘double’, but argument 6 has type ‘int’ [-Wformat=]
+ ch results in %.5f\n", pow(f[j][k],g1[i][j]), pow(1-f[j][k],1-g1[i][j]),q[i][k], pA1[k]);
+                                                                                  ~~~~~~^
+adapt_f.cpp:30:153: warning: format ‘%f’ expects argument of type ‘double’, but argument 6 has type ‘int’ [-Wformat=]
+ ch results in %.5f\n", pow(f[j][k],g2[i][j]), pow(1-f[j][k],1-g2[i][j]),q[i][k], pA2[k]);
+                                                                                  ~~~~~~^
+adapt_f.cpp:31:80: warning: format ‘%f’ expects argument of type ‘double’, but argument 3 has type ‘int’ [-Wformat=]
+  fprintf(stderr, "will add %.5f to sumpA1 and %.5f to sumpA2\n", pA1[k], pA2[k]);
+                                                                  ~~~~~~        ^
+adapt_f.cpp:31:80: warning: format ‘%f’ expects argument of type ‘double’, but argument 4 has type ‘int’ [-Wformat=]
+adapt_f.cpp:36:75: warning: format ‘%f’ expects argument of type ‘double’, but argument 3 has type ‘int’ [-Wformat=]
+       fprintf(stderr,"\n sumpA1 = %.5f, sumpA2 = %.5f\n", sum_pA1, sum_pA2);
+                                                                           ^
+adapt_f.cpp:36:75: warning: format ‘%f’ expects argument of type ‘double’, but argument 4 has type ‘int’ [-Wformat=]
+g++  -o evalAdmix Cinterface.cpp  filereader_and_conversions.o extractors.o asort.o alloc.o evalAdmix.o adapt_f.o -O3 -lz -lpthread 
+
+Compilation finished at Thu Mar 28 16:49:27
