@@ -376,7 +376,7 @@ typedef struct{ //used by HMMtest
 }functionPars2; //used by HMMtest
 
 
-
+/*
 typedef struct  { //pars used by relateHMM
   //?? min;
   //pointer
@@ -395,8 +395,32 @@ typedef struct  { //pars used by relateHMM
   double likes;
 
 }myPars ;//pars used by relateHMM
- 
+*/
 
+
+
+typedef struct  { //pars used by evalAdmix
+  //?? min;
+  //pointer
+  iMatrix *data; //1
+  iArray *chr; //1
+  dArray *position;//1
+
+  double **F;
+  double **Q;
+  double **r;
+  double *mean_r;
+  int nIts;
+  int K;
+  int nInd;
+  int nSites;
+  double likes;
+  int **isMissing;
+
+}myPars ;//pars used by evalAdmix
+
+
+/*
 typedef struct  { //pars used by relateHMM
   //?? min;
   //pointer
@@ -408,4 +432,15 @@ typedef struct  { //pars used by relateHMM
   int *numI;
   double llh;
 }eachPars ;//pars used by relateHMM
+ 
+*/
+
+
+typedef struct  { //pars used by each job in evalAdmix
+  //?? min;
+  //pointer
+  myPars *pars; //1
+  int ind1;
+  double *cor;
+}eachPars ;//pars used by each job in evalAdmix
  

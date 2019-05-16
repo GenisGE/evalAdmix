@@ -1,4 +1,0 @@
-void getpA(double ***pA, double ***pAmin, double **NtotalK, double **NminK, double **f, double **q, double **g1, double **g2, int nInd, int nSites, int K);
-
-
-void estimateNewF(double ***pA, double ***pAmin, double **NtotalK, double **NminK, double** NtotalKAdapted, double **NminKAdapted, double **fAdapted, int removeInd, int nSites, int K);

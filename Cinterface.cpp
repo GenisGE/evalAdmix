@@ -40,38 +40,11 @@ int jobs;
 int *printArray;
 FILE *fp;
 int cunt;
-int doInbreeding =0;
+
 
 eachPars *allPars = NULL;
-/*
-void *relateWrap(void *a){
-  eachPars *p = (eachPars *)a;
-  myPars *pars=p->pars;
-  int i=p->ind1;
-  int j=p->ind2;
-  int numIt=0;
-  
-  fprintf(stderr,"%f\n",pars->tolStop);
-  fprintf(stderr,"%f\n",pars->tol);
-  fprintf(stderr,"%d\n",pars->nSites);
-  fprintf(stderr,"%d\n",i);
-  fprintf(stderr,"%d\n",j);
-  fprintf(stderr,"%d\n",pars->K);
-  fprintf(stderr,"%d\n",pars->maxIter);
-  fprintf(stderr,"%d\n",pars->useSq);
-  fprintf(stderr,"%d\n",pars->data->matrix[i][0]);
- fprintf(stderr,"%d\n",pars->data->matrix[j][0]);
- fprintf(stderr,"%f\n",pars->Q[j][0]);
-fprintf(stderr,"%f\n",p->start[0]);
-  
-  //if(doInbreeding==0)
-  evalAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],p->start,pars->F,pars->tol);
-  //  else
-  //    ibAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->data,pars->Q,p->start,pars->F,pars->tol,i,pars->likes);
-  p->numIter=numIt;
-  return NULL;
-}
-*/
+
+
 void readDoubleGZ(double **d,int x,int y,const char*fname,int neg){
   fprintf(stderr,"opening : %s with x=%d y=%d\n",fname,x,y);
   const char*delims=" \n";
@@ -194,8 +167,8 @@ void info(){
 
   fprintf(stderr,"Setup:\n"); 
   fprintf(stderr,"\t-P Number of threads\n");
-  fprintf(stderr,"\t-F 1\t if you want to estimate inbreeding\n"); 
-  fprintf(stderr,"\t-autosomeMax 22\t autosome ends with this chromsome\n"); 
+  fprintf(stderr,"\t-autosomeMax 22\t autosome ends with this chromsome\n");
+  fprintf(stderr,"\t-nIts 5\t number of iterations to do for frequency correction\n");
 
 
 
@@ -204,53 +177,32 @@ void info(){
 }
 
 
-/*
+
 void *functionC(void *a) //the a means nothing
 {
   int running_job;
 
-  pthread_mutex_lock(&mutex1);
+  pthread_mutex_lock(&mutex1); // Protect so only one thread can edit jobs done
   
   while (jobs > 0) {
     running_job = jobs--;
-    pthread_mutex_unlock(&mutex1);
+    pthread_mutex_unlock(&mutex1); // Allow threads to go crazy
 
     ////////////////////////////////////////////// not protected
     int c = NumJobs-running_job;
     eachPars p=allPars[c];
     myPars *pars=p.pars;
     int i=p.ind1;
-    int j=p.ind2;
-    int numIt=0;
-    evalAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],p.start,pars->F,pars->tol);
-    p.numIter=numIt;
-    p.numI[0]=numIt;
+evalAdmix(p.cor,p.ind1,pars->r,pars->mean_r,pars->data->matrix,pars->K,pars->Q,pars->F,pars->nInd,pars->nSites,pars->nIts, pars->isMissing);
     
     //////////////////////////////////////////////
 
-    pthread_mutex_lock(&mutex1);
-
-    int d = NumJobs-running_job;
-    printArray[d]=1;
-    if(d%50==0)
-      fprintf(stderr,"\rrunning i1:%d i2:%d",allPars[d].ind1,allPars[d].ind2);  
-
-    while(cunt<NumJobs){
-    
-      if(printArray[cunt]==0)
-	break;
-
-      fprintf(fp,"%d\t%d\t%f\t%f\t%f\t%d\n",allPars[cunt].ind1,allPars[cunt].ind2,allPars[cunt].start[0],allPars[cunt].start[1],allPars[cunt].start[2],allPars[cunt].numI[0]);
-      //fprintf(fp,"%d\t%d\t%f\t%f\t%f\t%d\t%d\n",allPars[cunt].ind1,allPars[cunt].ind2,allPars[cunt].start[0],allPars[cunt].start[1],allPars[cunt].start[2],allPars[cunt].numI[0],cunt);
-        cunt++;
-    }
 
   }
-  pthread_mutex_unlock(&mutex1);
 
   return NULL;
 }
-*/
+
 
 
 void fex(const char* fileName){
@@ -279,14 +231,9 @@ int main(int argc, char *argv[]){
     return 0;
  }
   
-  int useSq=1;
-  double tolStop=0.000001;
-  int maxIter=5000;
-  
-  int numIter=4000;
-  double tol=0.0001;
   const char *outname = "output.k";
   int autosomeMax = 23;
+  int nIts = 5;
   string geno= "";
   string pos = "";
   string chr = "";
@@ -305,10 +252,6 @@ int main(int argc, char *argv[]){
     if (strcmp(argv[argPos],"-o")==0){
       outname  = argv[argPos+1]; 
     }
-    else if (strcmp(argv[argPos],"-F")==0)
-      doInbreeding = atoi(argv[argPos+1]); 
-    else if (strcmp(argv[argPos],"-accel")==0)
-      useSq = atoi(argv[argPos+1]); 
     else if (strcmp(argv[argPos],"-a")==0){
       autosomeMax = atoi(argv[argPos+1])+1; 
     }
@@ -318,6 +261,8 @@ int main(int argc, char *argv[]){
       qname=argv[argPos+1];
     else if(strcmp(argv[argPos],"-nThreads")==0 || strcmp(argv[argPos],"-P")==0) 
       nThreads=atoi(argv[argPos+1]);
+    else if(strcmp(argv[argPos],"-nIts")==0)
+      nIts=atoi(argv[argPos+1]);
     else if(strcmp(argv[argPos],"-plink")==0){
       std::string p_str =string( argv[argPos+1]);
       if(p_str.length()>4){
@@ -346,7 +291,7 @@ int main(int argc, char *argv[]){
     argPos+=2;
   }
   
-  //check if files exits
+  //check if files exists
   // fexists
   fex(qname);
   fex(fname);
@@ -395,12 +340,10 @@ int main(int argc, char *argv[]){
   int nSites=pars->data->y;
   int nInd=pars->data->x;
   fprintf(stderr,"\t\t->K=%d\tnSites=%d\tnInd=%d\n",K,nSites,nInd);
-  pars->maxIter=maxIter;
-  pars->tol=tol;
-  pars->tolStop=tolStop;
+
   pars->K=K;
   pars->nSites=nSites;
-  pars->useSq=useSq;
+  pars->nInd=nInd;
   
   fp=fopen(outname,"w");
   double **F =allocDouble(nSites,K);
@@ -410,143 +353,122 @@ int main(int argc, char *argv[]){
   readDouble(Q,nInd,K,qname,0);
   readDoubleGZ(F,nSites,K,fname,1);
 
-  ///////// print header
-  fprintf(fp,"ind1\tind2\tcor_res\n");
-
-  // without threading
-
-  //  if(nThreads==1){
-  double *cor=new double[(nInd-1)*nInd/2];
+ 
+    double *cor=new double[(nInd-1)*nInd/2];
     double **pi=allocDouble(nInd, nSites);
     double **r=allocDouble(nInd,nSites);
     double *mean_r=new double[nInd];
-    int nIts=5;
-    /*
-    double *sumQ=new double[K]; // TRY PRIMING NEWf ESTIMATION
 
-    for(int k=0; k<K;k++){
-      for(int i=0;i<nInd;i++){
-	sumQ[k] += Q[i][k];
+
+    // Create matrix to avoid missing data
+    int **isMissing= new int*[nInd];
+    for(size_t i=0; i<nInd; i++)
+      isMissing[i] = new int[nSites];
+
+    for(int i=0; i < nInd; i++){
+      for(int j=0; j< nSites; j++){
+	if(pars->data->matrix[i][j]==3){
+	  isMissing[i][j] = 1;
+	}
+	else{
+	  isMissing[i][j] = 0;
+	}
+
       }
     }
-    */
-    fprintf(stderr,"running i1:0 i2:0");  
-
     
-  // Calculate unadapted residuals
-  calcRes(pi, r, mean_r, pars->data->matrix, pars-> Q, pars->F, K, nSites, nInd);
-  fprintf(stderr, "finished calculating normal residuals\n");
-  // Loop over inds, adapt its freq and calculate cor with the remaining inds
-  for(int i=0;i<(nInd-1);i++){
+    // Calculate unadapted residuals
+    calcRes(pi, r, mean_r, pars->data->matrix, pars-> Q, pars->F, K, nSites, nInd, isMissing);
+    fprintf(stderr, "Finished calculating normal residuals\n");
 
-    evalAdmix(cor, i, r, mean_r, pars->data->matrix,K,pars-> Q, pars->F,nInd, nSites,nIts,sumQ);
+
+    pars -> r = r;
+    pars -> mean_r = mean_r;
+    pars -> nIts = nIts;
+    pars -> isMissing = isMissing;
+    // without threading
+    
+    if(nThreads==1){
+      // Loop over inds, adapt its freq and calculate cor with the remaining inds
+      for(int i=0;i<(nInd-1);i++){
+
+	fprintf(stderr, "Estimating freqs without ind %d\r",i);
+	
+	evalAdmix(cor, i, pars -> r, pars -> mean_r, pars->data->matrix,pars->K,pars-> Q, pars->F,pars->nInd, pars->nSites,pars->nIts, pars->isMissing);
 
       }
-  fprintf(stderr, "going to write all correlations\n");
-  //fprintf(sterr, "there are in total %d correlations to write", sizeof(cor))
-  int idxWrite = 0;
-  for(int i=0;i<(nInd-1);i++){
-    for(int j=i+1;j<nInd;j++){
-      fprintf(fp,"%d\t%d\t%f\n",i,j,cor[idxWrite]);
-      idxWrite ++;
-    }
 
-  }
-      fprintf(stderr, "correlations have been written\n");
-
-
-  //}
  
-    //  }
-  /*  else{ // with threads (the cool way)
+    }
+    else{ // with threads (the cool way)
 
-    NumJobs = nInd*(nInd-1)/2;
-    jobs =  nInd*(nInd-1)/2;
-    cunt = 0;
-    allPars = new eachPars[NumJobs];
+      fprintf(stderr, "Correcting frequencies with %d threads...",nThreads);
+      
+      NumJobs = nInd-1;
+      jobs =  nInd-1;
+      cunt = 0;
+      allPars = new eachPars[NumJobs];
 
-    int *indMatrix = new int[nInd*(nInd-1)];
-    int cunter=0;
-    for(int i=0;i<nInd-1;i++){
-      for(int j=i+1;j<nInd;j++){
-	indMatrix[cunter*2]=i;
-	indMatrix[cunter*2+1]=j;
-	cunter++;
+    
+      for(int c=0;c<NumJobs;c++){ // fill allPars with each job
+    
+      
+	allPars[c].ind1=c;
+	allPars[c].pars=pars;
+	allPars[c].cor=cor;
       }
+      pthread_t thread1[nThreads];
+    
+      for (int i = 0; i < nThreads; i++)
+	pthread_create(&thread1[i], NULL, &functionC, NULL);
+    
+      // Wait all threads to finish
+      for (int i = 0; i < nThreads; i++)
+	pthread_join(thread1[i], NULL);
+    
+     
+
     }
 
-    printArray=new int[NumJobs];
-    for(int c=0;c<NumJobs;c++){
-      printArray[c]=0;
+
+    fprintf(stderr, "\nFinished, going to write all correlations\n");
     
-      double *start=new double[3];
-      int *numI=new int[1];
-      start[0]=0.7;
-      start[1]=0.2;
-      start[2]=0.1;
-      int i=indMatrix[c*2];
-      int j=indMatrix[c*2+1];
-      
-      allPars[c].start=start;
-      allPars[c].ind1=i;
-      allPars[c].ind2=j;
-      allPars[c].numIter=0;
-      allPars[c].numI=numI;
-      allPars[c].pars=pars;
-      
+    ///////// print header
+    fprintf(fp,"ind1\tind2\tcor_res\n");
+
+    int idxWrite = 0;
+    for(int i=0;i<(nInd-1);i++){
+      for(int j=i+1;j<nInd;j++){
+	fprintf(fp,"%d\t%d\t%f\n",i,j,cor[idxWrite]);
+	idxWrite ++;
+      }
+
     }
-    pthread_t thread1[nThreads];
-    
-    for (int i = 0; i < nThreads; i++)
-      pthread_create(&thread1[i], NULL, &functionC, NULL);
-    
-  // Wait all threads to finish
-    for (int i = 0; i < nThreads; i++)
-      pthread_join(thread1[i], NULL);
-    
-    //  for (int c = 0; c < NumJobs; c++)
-  // fprintf(fp,"%d\t%d\t%f\t%f\t%f\t%d\n",allPars[c].ind1,allPars[c].ind2,allPars[c].start[0],allPars[c].start[1],allPars[c].start[2],allPars[c].numI[0]);
+
+
   
-
-  delete[] indMatrix;
- }
-  */
 
 
 // clean
-   fprintf(stderr, "gonna do final clean-up\n");
 
-  fprintf(stderr,"\n");
 
  for(int j = 0; j < nSites; j++){ 
     delete[] F[j];
     }
 
-  fprintf(stderr, "cleaned inner F\n");
 
  for(int i = 0; i < nInd; i++){
    delete[] Q[i];
-     fprintf(stderr, "cleant one inner Q\n");
      //delete[] pi[i];
-     //fprintf(stderr, "cleant one inner pi\n");
    delete[] r[i];
-     fprintf(stderr, "cleant one inner r\n");
  }
- fprintf(stderr, "cleant inner Q pi and r\n");
  delete[] F;
-  fprintf(stderr, "cleant F\n");
  delete[] Q;
-   fprintf(stderr, "cleant Q\n");
    //delete[] pi;
-   //fprintf(stderr, "cleant pi\n");
  delete[] r;
-   fprintf(stderr, "cleant r\n");
  delete[] mean_r;
-   fprintf(stderr, "cleant mean_r\n");
  fclose(fp);
-   fprintf(stderr, "closed fp\n");
  delete[] allPars;
-   fprintf(stderr, "cleant allPars\n");
  
 
   fprintf(stderr, "\t[ALL done] cpu-time used =  %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
