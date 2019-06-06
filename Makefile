@@ -20,8 +20,11 @@ alloc.o : alloc.h alloc.cpp types.h
 evalAdmix.o : evalAdmix.h evalAdmix.cpp
 	$(CC) -c evalAdmix.cpp ${FLAGS}
 
-Cinterface : Cinterface.cpp Cinterface.h filereader_and_conversions.o extractors.o asort.o alloc.o evalAdmix.o
-	$(CXX)  -o evalAdmix Cinterface.cpp  filereader_and_conversions.o extractors.o asort.o alloc.o evalAdmix.o ${FLAGS} -lz -lpthread 
+ngsevalAdmix.o : ngsevalAdmix.h ngsevalAdmix.cpp
+	$(CC) -c ngsevalAdmix.cpp ${FLAGS}
+
+Cinterface : Cinterface.cpp Cinterface.h filereader_and_conversions.o extractors.o asort.o alloc.o evalAdmix.o ngsevalAdmix.o
+	$(CXX)  -o evalAdmix Cinterface.cpp  filereader_and_conversions.o extractors.o asort.o alloc.o evalAdmix.o ngsevalAdmix.o ${FLAGS} -lz -lpthread 
 
 clean :
 	rm -f *.o evalAdmix

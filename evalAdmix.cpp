@@ -10,91 +10,92 @@ double **allocDouble2(size_t x,size_t y){
 }
 
 
-void adaptF(double **F, double **newF, int  **G, int K, double **Q, int N, int M, int withoutInd, int nIts, double **aNorm, double **bNorm, int **isMissing){
+void adaptF(double **F, int  **G, int K, double **Q, int nInd, int nSites, int withoutInd, int nIts, int **isMissing){
 
 
-  
-  for(int it=0; it<nIts;it++){ // do nIts steps to estimate adapted F
+  for(int it=0; it<nIts; it++){
+    
+    for(int j=0; j<nSites; j++){
 
-    for(int i=0;i<N;i++){ // Calculate normalizing factor for minor (aNorm) major (bNorm) ancestral probability per ind i and site j
-      for(int j=0;j<M;j++){
-	if(!isMissing[i][j]){
-	  double fpart=0;
-	  for(int k=0;k<K;k++){
-	    fpart=fpart+newF[j][k]*Q[i][k];
-	  }
-
-	  if(fpart==0){ // catch some issues I had
-	    fprintf(stderr, "0 in abNorm ind %d site %d",i,j);
-	    exit(0);
-	  }
-	  aNorm[i][j]=1.0/fpart;
-	  fpart=1-fpart;
-	  bNorm[i][j]=1.0/fpart;
-	  //    if(isnan(aNorm[i][j])||isnan(bNorm[i][j])){
-	  if(aNorm[i][j]==0){ // catch some issues I had
-	    fprintf(stderr, "0 in abNorm ind %d site %d",i,j);
-	    exit(0);
-	  }
+	double sumAG[K];
+	double sumBG[K];
+    
+	for(int k=0; k<K;k++){
+	  sumAG[k] = 0;
+	  sumBG[k] = 0;
 	}
-      }
 
-    }
-
-    for(int j=0;j<M;j++){
-      for(int k=0;k<K;k++){
-	double sumAG=0;
-	double sumBG=0;
-	for(int i=0;i<N;i++){ // Calculate total number of minor (sumAG) and major (sumBG) alleles in each ancestral population
-	  if(i==withoutInd)
+	for(int i=0; i<nInd;i++){
+	
+	  if(i == withoutInd)
 	    continue;
-	  else if(!isMissing[i][j]){
-	    sumAG=sumAG+G[i][j]*newF[j][k]*Q[i][k]*aNorm[i][j]; // Minor allele
-	    sumBG=sumBG+(2-G[i][j])*Q[i][k]*(1-newF[j][k])*bNorm[i][j]; // Major allele
-	    if(isnan(sumAG)){ // catch some other issues i had
-	      fprintf(stderr, "NaN produced when multiplying %d, %f,%f and %f",G[i][j],newF[j][k],Q[i][k],aNorm[i][j]);
-	      exit(0);
+
+	  if(!isMissing[j][i]){
+	    double fpart=0;
+	    double aNorm;
+	    double bNorm;
+
+	    for(int k=0;k<K;k++){
+	      fpart+=F[j][k]*Q[i][k];
 	    }
+	
+	    aNorm = 1.0/fpart;
+	    bNorm = 1.0/(1-fpart);
+
+	    for(int k=0; k<K; k++){
+	    sumAG[k] += G[j][i]*F[j][k]*Q[i][k]*aNorm; // Minor allele
+	    sumBG[k] += (2-G[j][i])*Q[i][k]*(1-F[j][k])*bNorm; // Major allele
+	 }
+	
 	  }
 	}
-	newF[j][k]=sumAG/(sumAG+sumBG); // Calculate new F given new estimate of alleles per K
-	if(isnan(newF[j][k])){ // catch more issues i had
-	  fprintf(stderr, "Nan in f site %d k %d, have sumAG = %f, sumBG = %f", j,k, sumAG, sumBG);
-	  exit(0);
-	}
-      }
 
-
+	for(int k=0;k<K;k++)
+	  F[j][k] = sumAG[k]/(sumAG[k]+sumBG[k]);
+	
     }
   }
 }
 
-void calcRes(double **pi,double **r, double *mean_r, int **g, double **q, double **f, int K, int nSites, int nInd, int **isMissing){
 
-  double sum_r=0;
-  
-  for(int i=0; i<nInd; i++){
-    sum_r = 0;
+void calcRes(double **r, double *mean_r, int **G, double **Q, double **F, int K, int nSites, int nInd, int **isMissing){
 
-    for(int j=0; j<nSites;j++){
+  double sum_r[nInd];
+  int usedSites[nInd];
 
-      if(!isMissing[i][j]){
-	pi[i][j]=0;
-	for(int k=0;k<K;k++){
-	  pi[i][j] += q[i][k]*f[j][k];
-	}
-	r[i][j] = g[i][j] - 2*pi[i][j];
-	sum_r += r[i][j];
-      }
 
-    }
-    mean_r[i] = sum_r/nSites;
+  for(int i=0; i<nInd;i++){
+    sum_r[i] = 0;
+    usedSites[i] = 0;
   }
-  //fprintf(stderr, "Residuals calculated\n");
+
+  for(int j=0; j<nSites;j++){
+    for(int i=0; i<nInd;i++){
+      
+      if(!isMissing[j][i]){
+	
+	double fpart=0; // individual freq pi
+	
+	for(int k=0; k<K; k++)
+	  fpart += Q[i][k]*F[j][k];
+
+	r[i][j] = G[j][i] - 2 * fpart;
+	sum_r[i] += r[i][j];
+	usedSites[i]++;
+      }
+      
+    }
+  }
+
+  for(int i=0; i<nInd;i++)
+    mean_r[i] = sum_r[i]/usedSites[i];
+
 }
+
+
 
  
-double correlateRes(int nSites, double *r1, double *r2, double mean_r1, double mean_r2, int *isMissing1, int *isMissing2){
+double correlateRes(int nSites, double *r1, double *r2, double mean_r1, double mean_r2, int **isMissing, int ind1, int ind2){
 
   double cor_num=0;
   double cor_den1=0;
@@ -105,7 +106,7 @@ double correlateRes(int nSites, double *r1, double *r2, double mean_r1, double m
 
   for(int j=0; j<nSites;j++){
 
-    if(!isMissing1[j]&!isMissing2[j]){
+    if(!isMissing[j][ind1]&!isMissing[j][ind2]){
       d_r1 = (r1[j] - mean_r1);
       d_r2 = (r2[j] - mean_r2);
       cor_num += d_r1*d_r2;
@@ -126,12 +127,9 @@ double correlateRes(int nSites, double *r1, double *r2, double mean_r1, double m
 
 void evalAdmix(double *cor, int ind1, double **r, double *mean_r, int **G, int K, double **Q, double **F, int nInd, int nSites,int nIts, int **isMissing){
 
-  double **piAdapted=allocDouble2(nInd, nSites);
   double **rAdapted=allocDouble2(nInd, nSites);
   double *mean_rAdapted = new double[nInd];
   double **fAdapted=allocDouble2(nSites,K);
-  double **bNorm=allocDouble2(nInd,nSites);
-  double **aNorm=allocDouble2(nInd,nSites);
 
 
    
@@ -144,9 +142,13 @@ void evalAdmix(double *cor, int ind1, double **r, double *mean_r, int **G, int K
 
     
   // Estimate new f and calculate new residuals
-  adaptF(F, fAdapted, G, K, Q, nInd, nSites, ind1, nIts, aNorm, bNorm, isMissing);
-  calcRes(piAdapted, rAdapted, mean_rAdapted, G, Q, fAdapted, K, nSites, nInd, isMissing);
+  adaptF(fAdapted, G, K, Q, nInd, nSites, ind1, nIts,isMissing);
+  calcRes(rAdapted, mean_rAdapted, G, Q, fAdapted, K, nSites, nInd, isMissing);
 
+  for(int ind2=(ind1+1); ind2<nInd; ind2++){
+    cor[ind2] =  correlateRes(nSites, r[ind1], rAdapted[ind2], mean_r[ind1], mean_rAdapted[ind2], isMissing, ind1, ind2);
+  }
+  /*
   // Index from which to start writing correlation
   int start=ind1*(nInd-1)-(ind1-1)*ind1/2;
 
@@ -155,7 +157,8 @@ void evalAdmix(double *cor, int ind1, double **r, double *mean_r, int **G, int K
     start++;      
 
   }
-
+  */
+  
   // Clean
 
   for(int j = 0; j < nSites; j++){ 
@@ -164,20 +167,14 @@ void evalAdmix(double *cor, int ind1, double **r, double *mean_r, int **G, int K
   }
 
   for(int i = 0; i < nInd; i++){
-    delete[] piAdapted[i];
     delete[] rAdapted[i];
-    delete[] aNorm[i];
-    delete[] bNorm[i];
 
   }
 
  
-  delete[] piAdapted;
   delete[] fAdapted;
   delete[] rAdapted;
   delete[] mean_rAdapted;
-  delete[] aNorm;
-  delete[] bNorm;
 
 
 }

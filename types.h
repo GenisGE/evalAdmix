@@ -405,7 +405,8 @@ typedef struct  { //pars used by evalAdmix
   iMatrix *data; //1
   iArray *chr; //1
   dArray *position;//1
-
+  int **genos;// transposed geno matrix for faster indexing in loops
+  
   double **F;
   double **Q;
   double **r;
@@ -418,6 +419,25 @@ typedef struct  { //pars used by evalAdmix
   int **isMissing;
 
 }myPars ;//pars used by evalAdmix
+
+
+typedef struct  { //pars used by evalAdmix
+  //?? min;
+  //pointer
+  double **genos; //1
+
+  double **F;
+  double **Q;
+  double **r;
+  double *mean_r;
+  int nIts;
+  int K;
+  int nInd;
+  int nSites;
+  double likes;
+  char **keeps;
+
+}myNGSPars ;//pars used by evalAdmix ngs version
 
 
 /*
@@ -443,4 +463,27 @@ typedef struct  { //pars used by each job in evalAdmix
   int ind1;
   double *cor;
 }eachPars ;//pars used by each job in evalAdmix
- 
+
+
+typedef struct  { //pars used by each job in evalAdmix
+  //?? min;
+  //pointer
+  myNGSPars *pars; //1
+  int ind1;
+  double *cor;
+}eachNGSPars ;//pars used by each job in evalAdmix
+
+
+
+//some struct will all the data from the beagle file (copied from ngsadmix32.cpp)
+typedef struct{
+  double **genos; // genotype likelihoods [nSites, 3nInd]
+  char *major;
+  char *minor;
+  char **ids;
+  int nSites;
+  int nInd;
+  char **keeps; //matrix containing 0/1 indicating if data or missing
+  int *keepInd; //keepInd[nSites] this is the number if informative samples
+  float *mafs;
+}bgl;
