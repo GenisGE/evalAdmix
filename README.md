@@ -7,7 +7,7 @@ and admixture propotions (P and Q files) generated.
 The output is a pairwise correlation of residuals matrix between individuals The correlation will be 0 in case of a good fit of 
 the data to the admixture model. When something is wrong, individuals from the same population will be positively correlated; and 
 individuals from different populationts but that share one or more ancestral populations as admixture sources will have a 
-negative correlation. Furthermore, positive correlation between a pair of individuals might also be due to relatedness.
+negative correlation. Positive correlation between a pair of individuals might also be due to relatedness.
 
 # Installation
 
