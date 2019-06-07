@@ -384,19 +384,19 @@ double ***allocDouble3D(size_t x,size_t y,size_t z){
 
 void info(){
   fprintf(stderr,"Arguments:\n");
-  fprintf(stderr,"\t-plink name of the binary plink file (excluding the .bed)\n");
-  fprintf(stderr,"\t-beagle name of beagle file containing genotype likelihoods (alternative to -plink)\n");
-  fprintf(stderr,"\t-fname Ancestral population frequencies\n"); 
-  fprintf(stderr,"\t-qname Admixture proportions\n"); 
+  fprintf(stderr,"\t-plink path to binary plink file (excluding the .bed)\n");
+  fprintf(stderr,"\t-beagle path to beagle file containing genotype likelihoods (alternative to -plink)\n");
+  fprintf(stderr,"\t-fname path to ancestral population frequencies file\n"); 
+  fprintf(stderr,"\t-qname path to admixture proportions file\n"); 
   fprintf(stderr,"\t-o name of the output file\n"); 
 
   fprintf(stderr,"Setup:\n"); 
-  fprintf(stderr,"\t-P Number of threads\n");
+  fprintf(stderr,"\t-P 1 number of threads\n");
   fprintf(stderr,"\t-autosomeMax 23\t autosome ends with this chromsome\n");
   fprintf(stderr,"\t-nIts 5\t number of iterations to do for frequency correction; if set to 0 calculates correlation without correction (fast but biased)\n");
-  fprintf(stderr,"\t-useSites 1.0\t Proportion of sites to use to calculate correlation of residuals\n");
-  fprintf(stderr, "\t-misTol 0.05 \t Tolerance for considering site as missing when using genotype likelihoods (-beagle)\n");
-    fprintf(stderr, "\t-mimMaf 0.05 \t Minimum minor allele frequency to keep site. Use same value as used in NGSadmix to keep compatibility when using genotype likelihoods (-beagle)\n");
+  fprintf(stderr,"\t-useSites 1.0\t proportion of sites to use to calculate correlation of residuals\n");
+  fprintf(stderr, "\t-misTol 0.05 \t tolerance for considering site as missing when using genotype likelihoods. Use same value as used in NGSadmix to keep compatibility when using genotype likelihoods (-beagle)\n");
+    fprintf(stderr, "\t-minMaf 0.05 \t minimum minor allele frequency to keep site. Use same value as used in NGSadmix to keep compatibility when using genotype likelihoods (-beagle)\n");
 
 
 
