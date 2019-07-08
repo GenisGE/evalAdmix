@@ -519,8 +519,8 @@ int main(int argc, char *argv[]){
       nThreads=atoi(argv[argPos+1]);
     else if(strcmp(argv[argPos],"-nIts")==0)
       nIts=atoi(argv[argPos+1]);
-    //    else if(strcmp(argv[argPos],"-useSites")==0)
-    // useSites=atof(argv[argPos+1]);
+        else if(strcmp(argv[argPos],"-useSites")==0)
+     useSites=atof(argv[argPos+1]);
     else if(strcmp(argv[argPos],"-autosomeMax")==0)
       autosomeMax=atoi(argv[argPos+1]);
     else if(strcmp(argv[argPos+1],"-minMaf")==0||strcmp(argv[argPos+1],"-maf")==0)
@@ -645,22 +645,80 @@ int main(int argc, char *argv[]){
     pars->Q=Q;
     readDouble(Q,nInd,K,qname,0);
     readDoubleGZ(F,nSites,K,fname,1);
-
+    fprintf(stderr,"going to select sites\n");
  
     double **cor=allocDouble(nInd,nInd);
     double **r=allocDouble(nInd,nSites);
     double *mean_r=new double[nInd];
 
+    if(useSites!=1.){
 
+      int nSitesNew = nSites * useSites;
+      int nSitesLeft = nSites;
+      int nSitesNeeded = nSitesNew;
+
+      int **genosT = new int*[nSitesNew];
+      int **isMissing = new int*[nSitesNew];
+      double **newF = new double*[nSites];
+
+      int jNew = 0;
+      
+      for(int j=0; j<nSites;j++){
+
+	double r = rand() / RAND_MAX;
+	double p = nSitesNeeded / nSitesLeft;
+	nSitesLeft --;
+	if(r<p){
+	  
+	  nSitesNeeded --;
+	  genosT[jNew] = new int[nInd];
+	  isMissing[jNew] = new int[nInd];
+	  newF[jNew] = new double[K];
+ 
+	  for(int i=0; i<nInd;i++){
+
+	    genosT[jNew][i] = pars -> data -> matrix[i][j];
+
+	    			
+	    if(genosT[jNew][i]==3)
+	      isMissing[jNew][i] = 1;
+	
+	    else
+	      isMissing[jNew][i] = 0;
+	    
+
+	  }
+	  
+      for(int k=0;k<K;k++){
+	newF[jNew][k] = F[j][k];
+	}
+      jNew++;
+      }
+
+    }
+      pars -> nSites = nSitesNew;
+      pars -> F = newF;
+  
+    pars -> isMissing = isMissing;
+    pars -> genos = genosT;
+    fprintf(stderr, "%i sites selected", nSitesNew);
+    }
+
+  
+    
+    else{
     // Create matrix to avoid missing data
     int **isMissing= new int*[nSites];
 
     // Transposed geno matrix
     int **genosT = new int*[nSites];
     // PROBABLY COULD DO THIS WHEN READING DATA AND THEN ONLY HAVE ONE MATRIX IN MEMORY
+
     for(int j=0; j<nSites;j++){
+      
       genosT[j] = new int[nInd];
       isMissing[j] = new int[nInd];
+      
       for(int i=0; i<nInd; i++){
 	genosT[j][i] = pars->data->matrix[i][j];
 			
@@ -670,19 +728,20 @@ int main(int argc, char *argv[]){
 	else
 	  isMissing[j][i] = 0;
       }
+      }
+    
+    pars -> isMissing = isMissing;
+    pars -> genos = genosT;
+    
     }
-
-
+    
     
 
     pars -> r = r;
     pars -> mean_r = mean_r;
     pars -> nIts = nIts;
-    pars -> isMissing = isMissing;
-    pars -> genos = genosT;
-    
     // Calculate unadapted residuals
-    calcRes(r, mean_r, pars->genos, pars-> Q, pars->F, K, nSites, nInd, isMissing);
+    calcRes(r, mean_r, pars->genos, pars-> Q, pars->F, K, pars->nSites, nInd, pars->isMissing);
     fprintf(stderr, "Finished calculating normal residuals\n");
 
     // without threading
@@ -715,7 +774,9 @@ int main(int argc, char *argv[]){
 	allPars[c].ind1=c;
 	allPars[c].pars=pars;
 	allPars[c].cor=cor[c];
+	
       }
+      
       pthread_t thread1[nThreads];
     
       for (int i = 0; i < nThreads; i++)
@@ -740,7 +801,9 @@ int main(int argc, char *argv[]){
 	  fprintf(fp,"%f\t",cor[j][i]);
 	else if(i==j)
 	  fprintf(fp,"NA\t");
+
       }
+      
       fprintf(fp,"\n");
 
     }
@@ -753,8 +816,8 @@ int main(int argc, char *argv[]){
 
     for(int j = 0; j < nSites; j++){ 
       delete[] F[j];
-      delete[] isMissing[j];
-      delete[] genosT[j];
+      //   delete[] isMissing[j];
+      //delete[] genosT[j];
     }
 
 
@@ -766,8 +829,8 @@ int main(int argc, char *argv[]){
     delete[] F;
     delete[] Q;
     delete[] r;
-    delete[] isMissing;
-    delete[] genosT;
+    // delete[] isMissing;
+    // delete[] genosT;
     delete[] mean_r;
     delete[] cor;
     fclose(fp);
