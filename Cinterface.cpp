@@ -645,21 +645,24 @@ int main(int argc, char *argv[]){
     pars->Q=Q;
     readDouble(Q,nInd,K,qname,0);
     readDoubleGZ(F,nSites,K,fname,1);
-    fprintf(stderr,"going to select sites\n");
  
     double **cor=allocDouble(nInd,nInd);
     double **r=allocDouble(nInd,nSites);
     double *mean_r=new double[nInd];
 
+
+    // Downsample geno matrix by randomly keeping proportion useSites of sites
     if(useSites!=1.){
 
+      fprintf(stderr, "Only %.0f %% of sites will be used, going to downsample genotype matrix\n", useSites*100);
+      
       int nSitesNew = nSites * useSites;
       int nSitesLeft = nSites;
       int nSitesNeeded = nSitesNew;
 
       int **genosT = new int*[nSitesNew];
       int **isMissing = new int*[nSitesNew];
-      double **newF = new double*[nSites];
+      double **newF = new double*[nSitesNew];
 
       int jNew = 0;
       
@@ -688,7 +691,7 @@ int main(int argc, char *argv[]){
 	    
 
 	  }
-	  
+	  // corresponding freqs also need to be removed
       for(int k=0;k<K;k++){
 	newF[jNew][k] = F[j][k];
 	}
@@ -701,11 +704,12 @@ int main(int argc, char *argv[]){
   
     pars -> isMissing = isMissing;
     pars -> genos = genosT;
-    fprintf(stderr, "%i sites selected", nSitesNew);
+
+    fprintf(stderr, "%d sites left after downsampling\n\n", pars -> nSites);   
     }
 
   
-    
+    // if useSites=1 (use all sites), only transpose geno matrix to make things faster
     else{
     // Create matrix to avoid missing data
     int **isMissing= new int*[nSites];
@@ -851,9 +855,6 @@ int main(int argc, char *argv[]){
     if(minMaf!=0.0)
       filterMinMaf(d,minMaf);
     
-    double **cor=allocDouble(d.nInd,d.nInd);
-    double **r=allocDouble(d.nInd,d.nSites);
-    double *mean_r=new double[d.nInd];
 
     int K=getK(qname);
     int nSites=d.nSites;
@@ -874,6 +875,64 @@ int main(int argc, char *argv[]){
     readDouble(Q,nInd,K,qname,0);
     readDoubleGZ(F,nSites,K,fname,1);
 
+    if(useSites!=1){
+
+      fprintf(stderr, "Only %.0f %% of sites will be used, going to downsample genotype likelihoods matrix", useSites*100);
+
+      int nSitesNew = nSites * useSites;
+      int nSitesLeft = nSites;
+      int nSitesNeeded = nSitesNew;
+
+      double **newGenos = new double*[nSitesNew];
+      char **newKeeps = new char*[nSitesNew];
+      double **newF = new double*[nSitesNew];
+      int *newKeepInds[nSitesNew];
+
+      int jNew = 0;
+      
+      for(int j=0; j<nSites;j++){
+
+	double r = rand() / RAND_MAX;
+	double p = nSitesNeeded / nSitesLeft;
+	nSitesLeft --;
+	if(r<p){
+	  
+	  nSitesNeeded --;
+	  newGenos[jNew] = new double[nInd*3];
+	  newKeeps[jNew] = new char[nInd];
+	  newF[jNew] = new double[K];
+ 
+	  for(int i=0; i<nInd;i++){
+
+	    newGenos[jNew][i*3+0] = pars -> genos[j][i*3+0];
+	    newGenos[jNew][i*3+1] = pars -> genos[j][i*3+1];
+	    newGenos[jNew][i*3+2] = pars -> genos[j][i*3+2];
+
+	    newKeeps[jNew][i] = pars->keeps[j][i];
+	    
+
+	  }
+	  // corresponding freqs also need to be downsampled
+      for(int k=0;k<K;k++){
+	newF[jNew][k] = F[j][k];
+	}
+      jNew++;
+      }
+
+    }
+      pars -> nSites = nSitesNew;
+      pars -> F = newF;
+  
+    pars -> keeps =newKeeps;
+    pars -> genos = newGenos;
+
+    fprintf(stderr, "%i sites left after downsampling\n", pars -> nSites);
+
+    }
+
+    double **cor=allocDouble(pars->nInd,pars->nInd);
+    double **r=allocDouble(pars->nInd,pars->nSites);
+    double *mean_r=new double[pars->nInd];
 
     // Calculate unadapted residuals
     ngscalcRes(r, mean_r, pars->F, pars-> Q,pars-> K, pars->nSites,pars-> nInd,pars->genos, pars-> keeps);
