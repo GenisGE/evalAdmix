@@ -414,9 +414,11 @@ typedef struct  { //pars used by evalAdmix
   int nIts;
   int K;
   int nInd;
+  int nIndUse;
   int nSites;
   double likes;
   int **isMissing;
+  int *useInds;
 
 }myPars ;//pars used by evalAdmix
 
@@ -433,9 +435,11 @@ typedef struct  { //pars used by evalAdmix
   int nIts;
   int K;
   int nInd;
+  int nIndUse;
   int nSites;
   double likes;
   char **keeps;
+  int *useInds;
 
 }myNGSPars ;//pars used by evalAdmix ngs version
 
@@ -461,6 +465,7 @@ typedef struct  { //pars used by each job in evalAdmix
   //pointer
   myPars *pars; //1
   int ind1;
+  int ind1u;
   double *cor;
 }eachPars ;//pars used by each job in evalAdmix
 
@@ -470,6 +475,7 @@ typedef struct  { //pars used by each job in evalAdmix
   //pointer
   myNGSPars *pars; //1
   int ind1;
+  int ind1u;
   double *cor;
 }eachNGSPars ;//pars used by each job in evalAdmix
 

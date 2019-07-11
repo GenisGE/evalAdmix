@@ -140,11 +140,11 @@ double correlateNGSRes(int nSites, double *r1, double *r2, double mean_r1, doubl
 }
 
 
-void ngsevalAdmix(double *cor, int ind1, double **r, double *mean_r, double **genos, int K, double **Q, double **F, int nInd, int nSites, int nIts, char **keep){
+void ngsevalAdmix(double *cor, int ind1u, int ind1, double **r, double *mean_r, double **genos, int K, double **Q, double **F, int nInd, int nSites, int nIts, char **keep, int nIndUse){
 
 
-  double **rAdapted=allocDouble2b(nInd, nSites);
-  double *mean_rAdapted = new double[nInd];
+  double **rAdapted=allocDouble2b(nIndUse, nSites);
+  double *mean_rAdapted = new double[nIndUse];
   double **fAdapted=allocDouble2b(nSites,K);
 
 
@@ -158,14 +158,14 @@ void ngsevalAdmix(double *cor, int ind1, double **r, double *mean_r, double **ge
   if(nIts==0){
     
   for(int ind2=(ind1+1); ind2<nInd; ind2++){
-    cor[ind2] =  correlateNGSRes(nSites, r[ind1], r[ind2], mean_r[ind1], mean_r[ind2], keep, ind1, ind2);
+    cor[ind2] =  correlateNGSRes(nSites, r[ind1u], r[ind2], mean_r[ind1u], mean_r[ind2], keep, ind1, ind2);
   }
 
   }
   else{
   // Estimate new f and calculate new residuals
   adaptFandeG(fAdapted, Q, genos, nSites, nInd,K, ind1, keep, nIts);
-  ngscalcRes(rAdapted, mean_rAdapted, fAdapted, Q, K, nSites, nInd,  genos, keep);
+  ngscalcRes(rAdapted, mean_rAdapted, fAdapted, Q, K, nSites, nIndUse,  genos, keep);
  
   for(int ind2=(ind1+1); ind2<nInd; ind2++){
     cor[ind2] =  correlateNGSRes(nSites, r[ind1], rAdapted[ind2], mean_r[ind1], mean_rAdapted[ind2], keep, ind1, ind2);

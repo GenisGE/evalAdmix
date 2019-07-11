@@ -7,3 +7,4 @@ std::vector<iArray*> getTestIndividuals(const char *pName);
 iMatrix *bed_to_iMatrix(const char* file, int nrow,int ncol) ;
 int numberOfLines(const char *filename);
 bArray *doBimFile(myPars* pars,const char *filename,const std::string delim,int autosomeMax);
+bArray *doUseIndsArray(int nInd, const char *filename, const std::string delim);

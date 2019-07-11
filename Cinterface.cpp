@@ -395,6 +395,7 @@ void info(){
   fprintf(stderr,"\t-autosomeMax 23\t autosome ends with this chromsome\n");
   fprintf(stderr,"\t-nIts 5\t number of iterations to do for frequency correction; if set to 0 calculates correlation without correction (fast but biased)\n");
   fprintf(stderr,"\t-useSites 1.0\t proportion of sites to use to calculate correlation of residuals\n");
+    fprintf(stderr,"\t-useInds filename\t name of file stating which individuals to calculate correlation from (0 don't use 1 use) default all individuals \n");
   fprintf(stderr, "\t-misTol 0.05 \t tolerance for considering site as missing when using genotype likelihoods. Use same value as used in NGSadmix to keep compatibility when using genotype likelihoods (-beagle)\n");
     fprintf(stderr, "\t-minMaf 0.05 \t minimum minor allele frequency to keep site. Use same value as used in NGSadmix to keep compatibility when using genotype likelihoods (-beagle)\n");
 
@@ -421,7 +422,7 @@ void *functionC(void *a) //the a means nothing
     eachPars p=allPars[c];
     myPars *pars=p.pars;
     int i=p.ind1;
-evalAdmix(p.cor,p.ind1,pars->r,pars->mean_r,pars->genos,pars->K,pars->Q,pars->F,pars->nInd,pars->nSites,pars->nIts, pars->isMissing);
+    evalAdmix(p.cor,p.ind1u, p.ind1,pars->r,pars->mean_r,pars->genos,pars->K,pars->Q,pars->F,pars->nInd,pars->nSites,pars->nIts, pars->isMissing, pars->nIndUse);
     
     //////////////////////////////////////////////
 
@@ -448,7 +449,7 @@ void *ngsfunctionC(void *a) //the a means nothing
     myNGSPars *pars=p.pars;
     int i=p.ind1;
 
-    ngsevalAdmix(p.cor,p.ind1,pars->r,pars->mean_r,pars->genos,pars->K,pars->Q,pars->F,pars->nInd,pars->nSites,pars->nIts, pars->keeps);
+    ngsevalAdmix(p.cor,p.ind1u, p.ind1,pars->r,pars->mean_r,pars->genos,pars->K,pars->Q,pars->F,pars->nInd,pars->nSites,pars->nIts, pars->keeps, pars->nIndUse);
     
     //////////////////////////////////////////////
 
@@ -495,12 +496,15 @@ int main(int argc, char *argv[]){
   string plink_bim;
   string plink_bed;
   int nThreads =1;
+  int selectInds=0;
   float minMaf = 0.05;
   double useSites=1.0;
   bArray *plinkKeep = NULL; //added in 0.97;
+  bArray *useIndsArray = NULL;
   const char* fname = NULL;
   const char* qname = NULL;
   const char* bname = NULL;
+  const char* useIndsFilename = NULL;
   bool useGeno = 0;
   bool useGenoLikes = 0;
   double misTol=0.05; // min diff between max and min geno likes to consider site missing
@@ -548,6 +552,10 @@ int main(int argc, char *argv[]){
     else if(strcmp(argv[argPos],"-beagle")==0){
       useGenoLikes = 1;
       bname=argv[argPos+1];
+    }
+    else if(strcmp(argv[argPos], "-useInds")==0){
+      selectInds=1;
+      useIndsFilename=argv[argPos+1];
     }
     else if(strcmp(argv[argPos],"-misTol")==0)
       misTol=atof(argv[argPos+1]);
@@ -637,7 +645,19 @@ int main(int argc, char *argv[]){
     pars->K=K;
     pars->nSites=nSites;
     pars->nInd=nInd;
-  
+    pars->nIndUse = nInd;
+     
+    if(selectInds){
+      useIndsArray = doUseIndsArray(pars->nInd, useIndsFilename, " \t");
+      //fprintf(stderr, "opened useInds file\n");
+      pars -> nIndUse = useIndsArray -> numTrue;
+      pars -> useInds = useIndsArray -> array;
+      fprintf(stderr, "%i individuals selected to calculate correlation from (-useInds)\n", useIndsArray -> numTrue);
+    }else{
+      for(int i = 0; i<pars->nInd;i++)
+	pars->useInds[i] = 1;
+    }
+    
     fp=fopen(outname,"w");
     double **F =allocDouble(nSites,K);
     double **Q =allocDouble(nInd,K);
@@ -645,16 +665,13 @@ int main(int argc, char *argv[]){
     pars->Q=Q;
     readDouble(Q,nInd,K,qname,0);
     readDoubleGZ(F,nSites,K,fname,1);
- 
-    double **cor=allocDouble(nInd,nInd);
-    double **r=allocDouble(nInd,nSites);
-    double *mean_r=new double[nInd];
+
 
 
     // Downsample geno matrix by randomly keeping proportion useSites of sites
     if(useSites!=1.){
 
-      fprintf(stderr, "Only %.0f %% of sites will be used, going to downsample genotype matrix\n", useSites*100);
+      fprintf(stderr, "Only %.0f %% of sites will be used, going to downsample genotype matrix (-useSites)\n", useSites*100);
       
       int nSitesNew = nSites * useSites;
       int nSitesLeft = nSites;
@@ -665,7 +682,7 @@ int main(int argc, char *argv[]){
       double **newF = new double*[nSitesNew];
 
       int jNew = 0;
-      
+      // Randomly select proportion given by useSites to keep
       for(int j=0; j<nSites;j++){
 
 	double r = rand() / RAND_MAX;
@@ -739,46 +756,58 @@ int main(int argc, char *argv[]){
     
     }
     
+     
+    double **cor=allocDouble(pars->nIndUse,pars->nIndUse);
+    double **r=allocDouble(pars->nIndUse,pars->nSites);
+    double *mean_r=new double[pars->nIndUse];
     
 
     pars -> r = r;
     pars -> mean_r = mean_r;
     pars -> nIts = nIts;
     // Calculate unadapted residuals
-    calcRes(r, mean_r, pars->genos, pars-> Q, pars->F, K, pars->nSites, nInd, pars->isMissing);
+    fprintf(stderr,"Going to calcualte normal residuals\n");
+    calcRes(pars->r, pars->mean_r, pars->genos, pars-> Q, pars->F, K, pars->nSites, pars->nIndUse, pars->isMissing);
     fprintf(stderr, "Finished calculating normal residuals\n");
 
     // without threading
     
     if(nThreads==1){
       // Loop over inds, adapt its freq and calculate cor with the remaining inds
+      int u=0;
       for(int i=0;i<(nInd-1);i++){
-
+	if(pars->useInds[i]){
 	fprintf(stderr, "Estimating ancestral frequencies without individual %d\r",i);
 	
-	evalAdmix(cor[i], i, pars -> r, pars -> mean_r, pars-> genos ,pars->K,pars-> Q, pars->F,pars->nInd, pars->nSites,pars->nIts, pars->isMissing);
-
+	evalAdmix(cor[u], u, i, pars -> r, pars -> mean_r, pars-> genos ,pars->K,pars-> Q, pars->F,pars->nInd, pars->nSites,pars->nIts, pars->isMissing, pars->nIndUse);
+	u++;
+	  }
       }
 
  
     }
     else{ // with threads (the cool way)
  
-      fprintf(stderr, "Re-estimating ancestral frequencies with %d threads...",nThreads);
+      fprintf(stderr, "Correcting frequencies with %d threads...",nThreads);
       
-      NumJobs = nInd-1;
-      jobs =  nInd-1;
+      NumJobs = (pars -> nIndUse) -1;
+      jobs =  (pars -> nIndUse) - 1;
       cunt = 0;
       allPars = new eachPars[NumJobs];
 
+      int b=0;
+      for(int c=0;c<nInd;c++){ // fill allPars with each job
     
-      for(int c=0;c<NumJobs;c++){ // fill allPars with each job
-    
-      
-	allPars[c].ind1=c;
-	allPars[c].pars=pars;
-	allPars[c].cor=cor[c];
-	
+	if(pars->useInds[c]){
+	// Need to keep general ind idx (c) and subset to use ind idx (b)
+	  allPars[b].ind1=c;
+	  allPars[b].ind1u=b;
+	  allPars[b].pars=pars;
+	  allPars[b].cor=cor[b];
+	  b++;
+	  if(b==NumJobs)
+	    break;
+	}
       }
       
       pthread_t thread1[nThreads];
@@ -797,8 +826,8 @@ int main(int argc, char *argv[]){
 
     fprintf(stderr, "\nFinished, going to write all correlations\n");
 
-    for(int i=0;i<nInd;i++){
-      for(int j=0;j<nInd;j++){
+    for(int i=0;i<(pars->nIndUse);i++){
+      for(int j=0;j<(pars->nIndUse);j++){
 	if(i<j)
 	  fprintf(fp,"%f\t",cor[i][j]);
 	else if(i>j)
@@ -817,29 +846,34 @@ int main(int argc, char *argv[]){
 
     // clean
 
-
+    
     for(int j = 0; j < nSites; j++){ 
       delete[] F[j];
-      //   delete[] isMissing[j];
+      //    delete[] isMissing[j];
       //delete[] genosT[j];
     }
+    
 
-
-    for(int i = 0; i < nInd; i++){
-      delete[] Q[i];
+    for(int i = 0; i < nInd; i++)
+    delete[] Q[i];
+    
+    for(int i=0; i<(pars->nIndUse);i++){
       delete[] r[i];
       delete[] cor[i];
+
     }
+    
     delete[] F;
     delete[] Q;
+    
     delete[] r;
-    // delete[] isMissing;
-    // delete[] genosT;
+    //delete[] isMissing;
+    //delete[] genosT;
     delete[] mean_r;
     delete[] cor;
     fclose(fp);
     delete[] allPars;
-
+    
   }// End of version with genotypes
 
   
@@ -864,9 +898,23 @@ int main(int argc, char *argv[]){
     pars -> keeps = d.keeps;
     pars->K=K;
     pars->nSites=nSites;
+    pars->nIndUse=nInd;
     pars->nInd=nInd;
     pars -> nIts=nIts;
-  
+
+
+    if(selectInds){
+      useIndsArray = doUseIndsArray(pars->nInd, useIndsFilename, " \t");
+      //fprintf(stderr, "opened useInds file\n");
+      pars -> nIndUse = useIndsArray -> numTrue;
+      pars -> useInds = useIndsArray -> array;
+      fprintf(stderr, "%i individuals selected to calculate correlation from (-useInds)\n", useIndsArray -> numTrue);
+    }else{
+      for(int i = 0; i<pars->nInd;i++)
+	pars->useInds[i] = 1;
+    }
+    
+    
     fp=fopen(outname,"w");
     double **F =allocDouble(nSites,K);
     double **Q =allocDouble(nInd,K);
@@ -877,7 +925,7 @@ int main(int argc, char *argv[]){
 
     if(useSites!=1){
 
-      fprintf(stderr, "Only %.0f %% of sites will be used, going to downsample genotype likelihoods matrix", useSites*100);
+      fprintf(stderr, "Only %.0f %% of sites will be used, going to downsample genotype likelihoods matrix (-useSites)\n", useSites*100);
 
       int nSitesNew = nSites * useSites;
       int nSitesLeft = nSites;
@@ -913,29 +961,29 @@ int main(int argc, char *argv[]){
 
 	  }
 	  // corresponding freqs also need to be downsampled
-      for(int k=0;k<K;k++){
-	newF[jNew][k] = F[j][k];
+	  for(int k=0;k<K;k++){
+	    newF[jNew][k] = F[j][k];
+	  }
+	  jNew++;
 	}
-      jNew++;
-      }
 
-    }
+      }
       pars -> nSites = nSitesNew;
       pars -> F = newF;
   
-    pars -> keeps =newKeeps;
-    pars -> genos = newGenos;
+      pars -> keeps =newKeeps;
+      pars -> genos = newGenos;
 
-    fprintf(stderr, "%i sites left after downsampling\n", pars -> nSites);
+      fprintf(stderr, "%i sites left after downsampling\n", pars -> nSites);
 
     }
 
-    double **cor=allocDouble(pars->nInd,pars->nInd);
-    double **r=allocDouble(pars->nInd,pars->nSites);
-    double *mean_r=new double[pars->nInd];
+    double **cor=allocDouble(pars->nIndUse,pars->nIndUse);
+    double **r=allocDouble(pars->nIndUse,pars->nSites);
+    double *mean_r=new double[pars->nIndUse];
 
     // Calculate unadapted residuals
-    ngscalcRes(r, mean_r, pars->F, pars-> Q,pars-> K, pars->nSites,pars-> nInd,pars->genos, pars-> keeps);
+    ngscalcRes(r, mean_r, pars->F, pars-> Q,pars-> K, pars->nSites,pars-> nIndUse,pars->genos, pars-> keeps);
     fprintf(stderr, "Finished calculating normal residuals\n");
 
 
@@ -945,31 +993,41 @@ int main(int argc, char *argv[]){
     
     // without threading
     if(nThreads==1){
+      int u=0;
       for(int i=0;i<(nInd-1);i++){
+	for(int i=0; i<(nInd-1);i++){
+	  if(pars->useInds[i]){
+	    fprintf(stderr, "Estimating freqs without ind %d\r",i);
 	
-       fprintf(stderr, "Estimating freqs without ind %d\r",i);
-	
-	ngsevalAdmix(cor[i], i, pars->r, pars->mean_r, pars->genos, pars->K,pars->Q,pars->F,pars->nInd,pars->nSites,pars->nIts,pars->keeps);
-
+	    ngsevalAdmix(cor[u], u,i, pars->r, pars->mean_r, pars->genos, pars->K,pars->Q,pars->F,pars->nInd,pars->nSites,pars->nIts,pars->keeps, pars->nIndUse);
+	    u++;
+	  }
+	}
       }
-    }
+    } 
       else{ // with threads (the cool way)
 
 
       fprintf(stderr, "Correcting frequencies with %d threads...",nThreads);
       
-      NumJobs = nInd-1;
-      jobs = nInd-1;
+      NumJobs = (pars -> nIndUse)- 1;
+      jobs = (pars -> nIndUse) - 1;
       cunt = 0;
       allNGSPars = new eachNGSPars[NumJobs];
 
-    
+      int b=0;
       for(int c=0;c<NumJobs;c++){ // fill allPars with each job
-    
-      
-	allNGSPars[c].ind1=c;
-	allNGSPars[c].pars=pars;
-	allNGSPars[c].cor=cor[c];
+
+	if(pars->useInds[c]){
+	// Need to keep general ind idx (c) and subset to use ind idx (b)
+	allNGSPars[b].ind1=c;
+	allNGSPars[b].ind1u=b;
+	allNGSPars[b].pars=pars;
+	allNGSPars[b].cor=cor[c];
+	b++;
+	if(b==NumJobs)
+	  break;
+      }
       }
       pthread_t thread1[nThreads];
     
@@ -989,8 +1047,8 @@ int main(int argc, char *argv[]){
 
     fprintf(stderr, "\nFinished, going to write all correlations\n");
     // Prints correlation as nIndxnInd tab-delimited matrix, with NA in diagonal (self-correlation)
-    for(int i=0;i<nInd;i++){
-      for(int j=0;j<nInd;j++){
+    for(int i=0;i<(pars->nIndUse);i++){
+      for(int j=0;j<(pars->nIndUse);j++){
 	if(i<j)
 	  fprintf(fp,"%f\t",cor[i][j]);
 	else if(i>j)
@@ -1014,9 +1072,15 @@ int main(int argc, char *argv[]){
 
     for(int i = 0; i < nInd; i++){
       delete[] Q[i];
+   
+    }
+
+    for(int i=0;i<(pars->nIndUse);i++){
+
       delete[] r[i];
       delete[] cor[i];
     }
+    
     delete[] F;
     delete[] Q;
     delete[] r;

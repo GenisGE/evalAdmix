@@ -672,3 +672,50 @@ bArray *doBimFile(myPars* pars,const char *filename,const std::string delim,int 
 }
 
 
+
+bArray *doUseIndsArray(int nInd, const char *filename, const std::string delim){
+
+  std::ifstream useIndsFile (filename, std::ios::in);
+
+  const int SIZE=2000;
+  char buffer[SIZE];
+  
+  if(!useIndsFile){
+    fileError(filename);
+    exit(0);
+      }
+
+  std::string tmp_string;
+  bArray *ret = allocBoolArray(nInd);
+  std::vector<int> useIndstmp;
+  int numTrue = 0;
+  int numRows=0;
+  int itemsInRow;
+  while(!useIndsFile.eof()){
+
+    useIndsFile.getline(buffer,SIZE);
+
+    tmp_string = std::string(buffer);
+    std::vector<std::string> tokens;
+    itemsInRow = get_lexemes(tmp_string, tokens, delim);
+        if (itemsInRow!=2 && itemsInRow!=0){
+     printf("useInds file:%s doesn't have 2 columns in row:%d\n",filename,numRows);
+     exit(0);
+    }else if(itemsInRow==0)
+     break;
+
+    useIndstmp.push_back(atoi(tokens[1].c_str()));
+    
+    numTrue += useIndstmp[numRows];
+    
+    numRows++;
+    
+  }
+
+  for(int i=0;i<nInd;i++)
+    ret->array[i] = useIndstmp[i];
+
+  ret-> numTrue = numTrue;
+
+  return ret;
+}

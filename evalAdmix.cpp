@@ -125,10 +125,10 @@ double correlateRes(int nSites, double *r1, double *r2, double mean_r1, double m
 
  
 
-void evalAdmix(double *cor, int ind1, double **r, double *mean_r, int **G, int K, double **Q, double **F, int nInd, int nSites,int nIts, int **isMissing){
+void evalAdmix(double *cor, int ind1u, int ind1, double **r, double *mean_r, int **G, int K, double **Q, double **F, int nInd, int nSites,int nIts, int **isMissing, int nIndUse){
 
-  double **rAdapted=allocDouble2(nInd, nSites);
-  double *mean_rAdapted = new double[nInd];
+  double **rAdapted=allocDouble2(nIndUse, nSites);
+  double *mean_rAdapted = new double[nIndUse];
   double **fAdapted=allocDouble2(nSites,K);
 
 
@@ -143,10 +143,10 @@ void evalAdmix(double *cor, int ind1, double **r, double *mean_r, int **G, int K
     
   // Estimate new f and calculate new residuals
   adaptF(fAdapted, G, K, Q, nInd, nSites, ind1, nIts,isMissing);
-  calcRes(rAdapted, mean_rAdapted, G, Q, fAdapted, K, nSites, nInd, isMissing);
+  calcRes(rAdapted, mean_rAdapted, G, Q, fAdapted, K, nSites, nIndUse, isMissing);
 
-  for(int ind2=(ind1+1); ind2<nInd; ind2++){
-    cor[ind2] =  correlateRes(nSites, r[ind1], rAdapted[ind2], mean_r[ind1], mean_rAdapted[ind2], isMissing, ind1, ind2);
+  for(int ind2=(ind1u+1); ind2<nIndUse; ind2++){
+    cor[ind2] =  correlateRes(nSites, r[ind1u], rAdapted[ind2], mean_r[ind1u], mean_rAdapted[ind2], isMissing, ind1, ind2);
   }
   /*
   // Index from which to start writing correlation
@@ -166,7 +166,7 @@ void evalAdmix(double *cor, int ind1, double **r, double *mean_r, int **G, int K
 
   }
 
-  for(int i = 0; i < nInd; i++){
+  for(int i = 0; i < nIndUse; i++){
     delete[] rAdapted[i];
 
   }
