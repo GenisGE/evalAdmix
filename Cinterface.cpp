@@ -422,7 +422,7 @@ void *functionC(void *a) //the a means nothing
     eachPars p=allPars[c];
     myPars *pars=p.pars;
     int i=p.ind1;
-    evalAdmix(p.cor,p.ind1u, p.ind1,pars->r,pars->mean_r,pars->genos,pars->K,pars->Q,pars->F,pars->nInd,pars->nSites,pars->nIts, pars->isMissing, pars->nIndUse);
+    evalAdmix(p.cor,p.ind1u, p.ind1,pars->r,pars->mean_r,pars->genos,pars->K,pars->Q,pars->F,pars->nInd,pars->nSites,pars->nIts, pars->isMissing, pars->nIndUse, pars->useInds);
     
     //////////////////////////////////////////////
 
@@ -646,16 +646,18 @@ int main(int argc, char *argv[]){
     pars->nSites=nSites;
     pars->nInd=nInd;
     pars->nIndUse = nInd;
+    
      
     if(selectInds){
       useIndsArray = doUseIndsArray(pars->nInd, useIndsFilename, " \t");
-      //fprintf(stderr, "opened useInds file\n");
       pars -> nIndUse = useIndsArray -> numTrue;
       pars -> useInds = useIndsArray -> array;
       fprintf(stderr, "%i individuals selected to calculate correlation from (-useInds)\n", useIndsArray -> numTrue);
     }else{
-      for(int i = 0; i<pars->nInd;i++)
-	pars->useInds[i] = 1;
+      int *useIndstmp=new int[pars->nInd];
+      for(int i = 0; i<(pars->nInd);i++)
+	useIndstmp[i] = 1;
+      pars->useInds = useIndstmp;
     }
     
     fp=fopen(outname,"w");
@@ -767,7 +769,7 @@ int main(int argc, char *argv[]){
     pars -> nIts = nIts;
     // Calculate unadapted residuals
     fprintf(stderr,"Going to calcualte normal residuals\n");
-    calcRes(pars->r, pars->mean_r, pars->genos, pars-> Q, pars->F, K, pars->nSites, pars->nIndUse, pars->isMissing);
+    calcRes(pars->r, pars->mean_r, pars->genos, pars-> Q, pars->F, K, pars->nSites, pars->nInd, pars->nIndUse, pars->isMissing, pars->useInds);
     fprintf(stderr, "Finished calculating normal residuals\n");
 
     // without threading
@@ -779,7 +781,7 @@ int main(int argc, char *argv[]){
 	if(pars->useInds[i]){
 	fprintf(stderr, "Estimating ancestral frequencies without individual %d\r",i);
 	
-	evalAdmix(cor[u], u, i, pars -> r, pars -> mean_r, pars-> genos ,pars->K,pars-> Q, pars->F,pars->nInd, pars->nSites,pars->nIts, pars->isMissing, pars->nIndUse);
+	evalAdmix(cor[u], u, i, pars -> r, pars -> mean_r, pars-> genos ,pars->K,pars-> Q, pars->F,pars->nInd, pars->nSites,pars->nIts, pars->isMissing, pars->nIndUse, pars->useInds);
 	u++;
 	  }
       }
@@ -910,8 +912,10 @@ int main(int argc, char *argv[]){
       pars -> useInds = useIndsArray -> array;
       fprintf(stderr, "%i individuals selected to calculate correlation from (-useInds)\n", useIndsArray -> numTrue);
     }else{
-      for(int i = 0; i<pars->nInd;i++)
-	pars->useInds[i] = 1;
+      int *useIndstmp=new int[pars->nInd];
+      for(int i = 0; i<(pars->nInd);i++)
+	useIndstmp[i] = 1;
+      pars->useInds = useIndstmp;
     }
     
     
