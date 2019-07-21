@@ -9,6 +9,8 @@ the data to the admixture model. When something is wrong, individuals from the s
 individuals from different populationts but that share one or more ancestral populations as admixture sources will have a 
 negative correlation. Positive correlation between a pair of individuals might also be due to relatedness.
 
+More detailed documentation can be found [here](http://www.popgen.dk/software/index.php/EvalAdmix).
+
 # Installation
 
 ```
@@ -62,3 +64,8 @@ plotCorRes(cor_mat = r, pop = pop, title = "Admixture evaluation as correlation 
 
 ```
 
+# Citation
+
+evalAdmix has a preprint
+
+[Evaluation of Model Fit of Inferred Admixture Proportions](https://doi.org/10.1101/708883)
