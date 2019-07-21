@@ -9,6 +9,8 @@ the data to the admixture model. When something is wrong, individuals from the s
 individuals from different populationts but that share one or more ancestral populations as admixture sources will have a 
 negative correlation. Positive correlation between a pair of individuals might also be due to relatedness.
 
+More detailed documentation can be found [here](http://www.popgen.dk/software/index.php/EvalAdmix).
+
 # Installation
 
 ```
@@ -28,13 +30,17 @@ Arguments:
 	Required:
 		-plink path to binary plink file (excluding the .bed)
 		or
-	       -beagle path to beagle file containing genotype likelihoods (alternative to -plink)
+	      	-beagle path to beagle file containing genotype likelihoods (alternative to -plink)
+		
 		-fname path to ancestral population frequencies file
-	       -qname path to admixture proportions file
+	       	-qname path to admixture proportions file
+		
 	Optional:       
+	
 	       -o name of the output file
 	       
 	 Setup (optional):
+	 
 	       -P 1 number of threads
 	       -autosomeMax 23	 autosome ends with this chromsome
 	       -nIts 5	 number of iterations to do for frequency correction; if set to 0 calculates correlation without correction (fast but biased)
@@ -54,7 +60,12 @@ source("NicePlotCorRes.R")
 pop <- as.vector(read.table("plink.fam")$V1) # N length character vector with each individual population assignment
 r <- as.matrix(read.table("output.corres.txt"))
 
-plotCorRes(cor_mat = r, pop = pop, title = "Admixture evaluation as correlation of residuals", max_z=0.25, min_z=-0.25
+plotCorRes(cor_mat = r, pop = pop, title = "Admixture evaluation as correlation of residuals", max_z=0.25, min_z=-0.25)
 
 ```
 
+# Citation
+
+evalAdmix has a preprint
+
+[Evaluation of Model Fit of Inferred Admixture Proportions](https://doi.org/10.1101/708883)
