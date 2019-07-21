@@ -25,19 +25,36 @@ make
 
 ```
 Arguments:
-	-plink path to binary plink file (excluding the .bed)
-	-beagle path to beagle file containing genotype likelihoods (alternative to -plink)
-	-fname path to ancestral population frequencies file
-	-qname path to admixture proportions file
-	-o name of the output file
-Setup:
-	-P 1 number of threads
-	-autosomeMax 23	 autosome ends with this chromsome
-	-nIts 5	 number of iterations to do for frequency correction; if set to 0 calculates correlation without correction (fast but biased)
-	-useSites 1.0	 proportion of sites to use to calculate correlation of residuals
-	-misTol 0.05 	 tolerance for considering site as missing when using genotype likelihoods. Use same value as used in NGSadmix to keep compatibility when using genotype likelihoods (-beagle)
-	-minMaf 0.05 	 minimum minor allele frequency to keep site. Use same value as used in NGSadmix to keep compatibility when using genotype likelihoods (-beagle)
+	Required:
+		-plink path to binary plink file (excluding the .bed)
+		or
+	       -beagle path to beagle file containing genotype likelihoods (alternative to -plink)
+		-fname path to ancestral population frequencies file
+	       -qname path to admixture proportions file
+	Optional:       
+	       -o name of the output file
+	       
+	 Setup (optional):
+	       -P 1 number of threads
+	       -autosomeMax 23	 autosome ends with this chromsome
+	       -nIts 5	 number of iterations to do for frequency correction; if set to 0 calculates correlation without correction (fast but biased)
+	       -useSites 1.0	 proportion of sites to use to calculate correlation of residuals
+	       -useInds filename     path to tab delimited file with first column containing all individuals ID and second column with 1 to include individual in analysis and 0 otherwise (default all individuals are included)
+	       -misTol 0.05 	 tolerance for considering site as missing when using genotype likelihoods. Use same value as used in NGSadmix to keep compatibility when using genotype likelihoods (-beagle)
+	       -minMaf 0.05 	 minimum minor allele frequency to keep site. Use same value as used in NGSadmix to keep compatibility when using genotype likelihoods (-beagle)
 ```
 
 # Visualization
-(maybe add R functions I use to plot?)
+
+In R
+
+```
+source("NicePlotCorRes.R")
+
+pop <- as.vector(read.table("plink.fam")$V1) # N length character vector with each individual population assignment
+r <- as.matrix(read.table("output.corres.txt"))
+
+plotCorRes(cor_mat = r, pop = pop, title = "Admixture evaluation as correlation of residuals", max_z=0.25, min_z=-0.25
+
+```
+

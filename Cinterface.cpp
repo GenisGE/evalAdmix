@@ -395,7 +395,7 @@ void info(){
   fprintf(stderr,"\t-autosomeMax 23\t autosome ends with this chromsome\n");
   fprintf(stderr,"\t-nIts 5\t number of iterations to do for frequency correction; if set to 0 calculates correlation without correction (fast but biased)\n");
   fprintf(stderr,"\t-useSites 1.0\t proportion of sites to use to calculate correlation of residuals\n");
-    fprintf(stderr,"\t-useInds filename\t name of file stating which individuals to calculate correlation from (0 don't use 1 use) default all individuals \n");
+    fprintf(stderr,"\t-useInds filename\t path to tab delimited file with first column containing all individuals ID and second column with 1 to include individual in analysis and 0 otherwise (default all individuals are included)\n");
   fprintf(stderr, "\t-misTol 0.05 \t tolerance for considering site as missing when using genotype likelihoods. Use same value as used in NGSadmix to keep compatibility when using genotype likelihoods (-beagle)\n");
     fprintf(stderr, "\t-minMaf 0.05 \t minimum minor allele frequency to keep site. Use same value as used in NGSadmix to keep compatibility when using genotype likelihoods (-beagle)\n");
 
