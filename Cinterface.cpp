@@ -527,7 +527,7 @@ int main(int argc, char *argv[]){
      useSites=atof(argv[argPos+1]);
     else if(strcmp(argv[argPos],"-autosomeMax")==0)
       autosomeMax=atoi(argv[argPos+1]);
-    else if(strcmp(argv[argPos+1],"-minMaf")==0||strcmp(argv[argPos+1],"-maf")==0)
+    else if(strcmp(argv[argPos],"-minMaf")==0||strcmp(argv[argPos],"-maf")==0)
       minMaf=atof(argv[argPos+1]);
     else if(strcmp(argv[argPos],"-plink")==0){
       useGeno = 1;
