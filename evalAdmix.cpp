@@ -16,52 +16,13 @@ void adaptF(double **F, int  **G, int K, double **Q, int nInd, int nSites, int w
   for(int it=0; it<nIts; it++){
     
     for(int j=0; j<nSites; j++){
-      if(j==368){
-	double sumAG[K];
-	double sumBG[K];
-    
-	for(int k=0; k<K;k++){
-	  sumAG[k] = 0;
-	  sumBG[k] = 0;
-	}
-	
-	for(int i=0; i<nInd;i++){
-	
-	  if(i == withoutInd)
-	    continue;
-
-
-	  if(!isMissing[j][i]){
-	    double fpart=0;
-	    double aNorm;
-	    double bNorm;
-
-	    for(int k=0;k<K;k++){
-	      fpart+=F[j][k]*Q[i][k];
-	    }
-	    
-	    aNorm = 1.0/fpart;
-	    bNorm = 1.0/(1-fpart);
-
-	    for(int k=0; k<K; k++){
-	    sumAG[k] += G[j][i]*F[j][k]*Q[i][k]*aNorm; // Minor allele
-	    sumBG[k] += (2-G[j][i])*Q[i][k]*(1-F[j][k])*bNorm; // Major allele
-	    }
-	   
-	
-	  }
-	}
-
-	for(int k=0;k<K;k++)
-	  F[j][k] = sumAG[k]/(sumAG[k]+sumBG[k]);
-      }else{
 
 	double sumAG[K];
 	double sumBG[K];
     
 	for(int k=0; k<K;k++){
-	  sumAG[k] = 0;
-	  sumBG[k] = 0;
+	  sumAG[k] = 1;
+	  sumBG[k] = 1;
 	}
 
 	for(int i=0; i<nInd;i++){
@@ -94,11 +55,6 @@ void adaptF(double **F, int  **G, int K, double **Q, int nInd, int nSites, int w
 
 	for(int k=0;k<K;k++)
 	  F[j][k] = sumAG[k]/(sumAG[k]+sumBG[k]);
-
-      }
-
-
-
 	
     }
   }
