@@ -22,8 +22,8 @@ void adaptFandeG(double **F, double **Q, double **genos, int nSites, int nInd, i
 	double sumBG[K];
     
 	for(int k=0; k<K;k++){
-	  sumAG[k] = 0;
-	  sumBG[k] = 0;
+	  sumAG[k] = 1;
+	  sumBG[k] = 1;
 	}
 
 	for(int i=0; i<nInd;i++){
