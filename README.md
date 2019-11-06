@@ -62,26 +62,24 @@ r <- as.matrix(read.table("output.corres.txt"))
 
 plotCorRes(cor_mat = r, pop = pop, title = "Admixture evaluation as correlation of residuals", max_z=0.25, min_z=-0.25)
 
-```
 
-
-# Usage
+Usage
 
 plotCorRes(cor_mat, pop, 
            title="Correlation of residuals", min_z=NULL,max_z=NULL, 
            is.ord=F, cex.main=1.5, cex.lab=1.5, cex.legend=1.5)
 
-# Arguments
+Arguments
 
-_cor_mat_	Correlation of residuals matrix.
-_pop_		Vector with individuals population criteria.
-_title_		Plot title.
-_min_z_		Minimum value in scale (values below will be plotted as dark blue).
-_max_z_		Maximum value in color scale (values above will be plotted as dark red).
-_is.ord_	Logical indicating if cor_mat and pop are in desired order. If F individuals are grouped by population alphabetical order.
-_cex.main cex.lab cex.legend_	   Text size for title, population labels and legend.
+cor_mat	Correlation of residuals matrix.
+pop		Vector with individuals population criteria.
+title		Plot title.
+min_z		Minimum value in scale (values below will be plotted as dark blue).
+max_z		Maximum value in color scale (values above will be plotted as dark red).
+is.ord	Logical indicating if cor_mat and pop are in desired order. If F individuals are grouped by population alphabetical order.
+cex.main cex.lab cex.legend	   Text size for title, population labels and legend.
 
-
+```
 
 
 # Citation
