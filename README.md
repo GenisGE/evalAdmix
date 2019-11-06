@@ -62,6 +62,8 @@ r <- as.matrix(read.table("output.corres.txt"))
 
 plotCorRes(cor_mat = r, pop = pop, title = "Admixture evaluation as correlation of residuals", max_z=0.25, min_z=-0.25)
 
+```
+
 
 # Usage
 
@@ -80,7 +82,7 @@ _is.ord_	Logical indicating if cor_mat and pop are in desired order. If F indivi
 _cex.main cex.lab cex.legend_	   Text size for title, population labels and legend.
 
 
-```
+
 
 # Citation
 
