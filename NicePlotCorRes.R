@@ -1,5 +1,6 @@
-
-plotCorRes <- function(cor_mat, pop, title="Correlation of residuals", min_z=NULL,max_z=NULL, is.ord=F){
+plotCorRes <- function(cor_mat, pop, 
+                       title="Correlation of residuals", min_z=NULL,max_z=NULL, 
+                       is.ord=F, cex.main=1.5, cex.lab=1.5, cex.legend=1.5){
   
   
   N <- dim(cor_mat)[1]
@@ -87,27 +88,26 @@ plotCorRes <- function(cor_mat, pop, title="Correlation of residuals", min_z=NUL
   rlegend <- as.raster(matrix(rampcols, ncol=1)[length(rampcols):1,])
   
   layout(matrix(1:2,ncol=2), width = c(4,1),height = c(1,1))
-  par(mar=c(5,4,4,0))
+  par(mar=c(5,4,4,0),oma=c(1,4.5,2,0))
   image(t(cor_mat), col=rampcols, breaks=rampbreaks,
         yaxt="n",xaxt="n", zlim=c(min_z,max_z),useRaster=T,
         main=title, 
-        oldstyle=T,cex.main=1)
+        oldstyle=T,cex.main=cex.main,xpd=NA)
   image(ifelse(t(cor_mat>max_z),1,NA),col="darkred",add=T)
   if(min(cor_mat)<min_z) image(ifelse(t(cor_mat<min_z),1,NA),col="darkblue",add=T)
   
   
-  text(tapply(1:length(pop),pop,mean)/length(pop),-0.1,unique(pop),xpd=T)
-  text(-0.1,tapply(1:length(pop),pop,mean)/length(pop),unique(pop),xpd=T)
-  abline(v=cumsum(sapply(unique(pop),function(x){sum(pop==x)}))/length(pop),col=1,lwd=1.2)
-  abline(h=cumsum(sapply(unique(pop),function(x){sum(pop==x)}))/length(pop),col=1,lwd=1.2)
+  text(sort(tapply(1:length(pop),pop,mean)/length(pop)),-0.1,unique(pop),xpd=NA,cex=cex.lab)
+  text(-0.1,sort(tapply(1:length(pop),pop,mean)/length(pop)),unique(pop),xpd=NA, cex=cex.lab,srt=90)
+  abline(v=grconvertX(cumsum(sapply(unique(pop),function(x){sum(pop==x)}))/N,"npc","user"),
+         col=1,lwd=1.2,xpd=F)
+  abline(h=grconvertY(cumsum(sapply(unique(pop),function(x){sum(pop==x)}))/N, "npc", "user"),
+         col=1,lwd=1.2,xpd=F)
   par(mar=c(5,0.5,4,2))
   plot(c(0,1),c(0,1),type = 'n', axes = F,xlab = '', ylab = '', main = '')
   rasterImage(rlegend, 0, 0.25, 0.4,0.75)
   text(x=0.8, y = c(0.25,0.5, 0.75),
        labels = c(-max(abs(min_z),abs(max_z)), 0, max(abs(min_z),abs(max_z))),
-  cex=0.8)
+  cex=cex.legend,xpd=NA)
   
-# lim <- max(abs(min_z), max_z)
-
-
 }
