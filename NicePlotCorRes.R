@@ -1,7 +1,7 @@
 plotCorRes <- function(cor_mat, pop, 
                        title="Correlation of residuals", min_z=NULL,max_z=NULL, 
-                       is.ord=F, cex.main=1.5, cex.lab=1.5, cex.legend=1.5){
-  
+                       is.ord=F, cex.main=1.5, cex.lab=1.5, cex.legend=1.5, color_palette=c("dodgerblue4", "seagreen3", "yellow")){
+                         
   
   N <- dim(cor_mat)[1]
   
@@ -65,7 +65,7 @@ plotCorRes <- function(cor_mat, pop,
   if(is.null(min_z)) min_z <- min(cor_mat[!is.na(cor_mat)])
   if(is.null(max_z)) max_z <- max(cor_mat[!is.na(cor_mat)])
   
-  diag(cor_mat)<-1
+  diag(cor_mat) <- 10
   nHalf <- 10
   
   # make sure col palette is centered on 0
@@ -74,12 +74,12 @@ plotCorRes <- function(cor_mat, pop,
   Thresh <- 0
   
   ## Make vector of colors for values below threshold
-  rc1 <- colorRampPalette(colors = c("blue", "green"), space="Lab")(nHalf)    
+  rc1 <- colorRampPalette(colors = color_palette[1:2], space="Lab")(nHalf)    
   ## Make vector of colors for values above threshold
-  rc2 <- colorRampPalette(colors = c("green", "red"), space="Lab")(nHalf)
+  rc2 <- colorRampPalette(colors = color_palette[2:3], space="Lab")(nHalf)
   rampcols <- c(rc1, rc2)
   
-  rampcols[c(nHalf, nHalf+1)] <- rgb(t(col2rgb("green")), maxColorValue=256) 
+  rampcols[c(nHalf, nHalf+1)] <- rgb(t(col2rgb(color_palette[2])), maxColorValue=256) 
   
   rb1 <- seq(Min, Thresh, length.out=nHalf+1)
   rb2 <- seq(Thresh, Max, length.out=nHalf+1)[-1]
@@ -93,9 +93,9 @@ plotCorRes <- function(cor_mat, pop,
         yaxt="n",xaxt="n", zlim=c(min_z,max_z),useRaster=T,
         main=title, 
         oldstyle=T,cex.main=cex.main,xpd=NA)
-  image(ifelse(t(cor_mat>max_z),1,NA),col="darkred",add=T)
-  if(min(cor_mat)<min_z) image(ifelse(t(cor_mat<min_z),1,NA),col="darkblue",add=T)
-  
+  image(ifelse(t(cor_mat>max_z),1,NA),col=rgb(max(0,col2rgb(color_palette[3])[1]-20),max(0,col2rgb(color_palette[3])[2]-20),max(0,col2rgb(color_palette[3])[3]-20),255, maxColorValue = 255),add=T)
+  if(min(cor_mat)<min_z) image(ifelse(t(cor_mat<min_z),1,NA),col=rgb(max(0,col2rgb(color_palette[1])[1]-20),max(0,col2rgb(color_palette[1])[2]-20),max(0,col2rgb(color_palette[1])[3]-20),255, maxColorValue = 255),add=T)
+  image(ifelse(t(cor_mat==10),1,NA),col="black",add=T)
   
   text(sort(tapply(1:length(pop),pop,mean)/length(pop)),-0.1,unique(pop),xpd=NA,cex=cex.lab)
   text(-0.1,sort(tapply(1:length(pop),pop,mean)/length(pop)),unique(pop),xpd=NA, cex=cex.lab,srt=90)
