@@ -1,6 +1,7 @@
 plotCorRes <- function(cor_mat, pop, 
                        title="Correlation of residuals", min_z=NULL,max_z=NULL, 
-                       is.ord=F, cex.main=1.5, cex.lab=1.5, cex.legend=1.5, color_palette=c("dodgerblue4", "seagreen3", "yellow")){
+                       is.ord=F, cex.main=1.5, cex.lab=1.5, cex.legend=1.5, color_palette=c("dodgerblue4", "seagreen3", "yellow"),
+                       pop_labels = c(T,T)){
                          
   
   N <- dim(cor_mat)[1]
@@ -96,9 +97,11 @@ plotCorRes <- function(cor_mat, pop,
   image(ifelse(t(cor_mat>max_z),1,NA),col=rgb(max(0,col2rgb(color_palette[3])[1]-20),max(0,col2rgb(color_palette[3])[2]-20),max(0,col2rgb(color_palette[3])[3]-20),255, maxColorValue = 255),add=T)
   if(min(cor_mat)<min_z) image(ifelse(t(cor_mat<min_z),1,NA),col=rgb(max(0,col2rgb(color_palette[1])[1]-20),max(0,col2rgb(color_palette[1])[2]-20),max(0,col2rgb(color_palette[1])[3]-20),255, maxColorValue = 255),add=T)
   image(ifelse(t(cor_mat==10),1,NA),col="black",add=T)
-  
-  text(sort(tapply(1:length(pop),pop,mean)/length(pop)),-0.1,unique(pop),xpd=NA,cex=cex.lab)
-  text(-0.1,sort(tapply(1:length(pop),pop,mean)/length(pop)),unique(pop),xpd=NA, cex=cex.lab,srt=90)
+
+    if(pop_labels[2])
+        text(sort(tapply(1:length(pop),pop,mean)/length(pop)),-0.1,unique(pop),xpd=NA,cex=cex.lab)
+    if(pop_labels[1])
+        text(-0.1,sort(tapply(1:length(pop),pop,mean)/length(pop)),unique(pop),xpd=NA, cex=cex.lab,srt=90)
   abline(v=grconvertX(cumsum(sapply(unique(pop),function(x){sum(pop==x)}))/N,"npc","user"),
          col=1,lwd=1.2,xpd=F)
   abline(h=grconvertY(cumsum(sapply(unique(pop),function(x){sum(pop==x)}))/N, "npc", "user"),
