@@ -61,10 +61,11 @@ pop <- as.vector(read.table("plink.fam")$V1) # N length character vector with ea
 r <- as.matrix(read.table("output.corres.txt"))
 
 plotCorRes(cor_mat = r, pop = pop, title = "Admixture evaluation as correlation of residuals", max_z=0.25, min_z=-0.25)
-
+```
 
 Usage
 
+```
 plotCorRes(cor_mat, pop, 
            title="Correlation of residuals", min_z=NULL,max_z=NULL, 
            is.ord=F, cex.main=1.5, cex.lab=1.5, cex.legend=1.5,
