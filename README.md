@@ -67,7 +67,10 @@ Usage
 
 plotCorRes(cor_mat, pop, 
            title="Correlation of residuals", min_z=NULL,max_z=NULL, 
-           is.ord=F, cex.main=1.5, cex.lab=1.5, cex.legend=1.5)
+           is.ord=F, cex.main=1.5, cex.lab=1.5, cex.legend=1.5,
+	   color_palette=c("blue", "green", "red"),
+           pop_labels = c(T,T), plot_legend = T)
+
 
 Arguments
 
@@ -78,6 +81,9 @@ min_z		Minimum value in scale (values below will be plotted as dark blue).
 max_z		Maximum value in color scale (values above will be plotted as dark red).
 is.ord	Logical indicating if cor_mat and pop are in desired order. If F individuals are grouped by population alphabetical order.
 cex.main cex.lab cex.legend	   Text size for title, population labels and legend.
+color_palette	Vector of length 3 indicating (min, mid, max) color scale.
+pop_labels	Logical vector of length 2 indicating whether to write population labels in (y axis, x axis).
+plot_legend	Logical indicating whether legend with color scale should be plotted.
 
 ```
 
