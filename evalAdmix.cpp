@@ -55,8 +55,9 @@ void adaptF(double **F, int  **G, int K, double **Q, int nInd, int nSites, int w
 
 	for(int k=0;k<K;k++){
 	  F[j][k] = sumAG[k]/(sumAG[k]+sumBG[k]);
-	  if(F[j][k]==0)
-	    F[j][k] = 1e-6;
+	  F[j][k] = std::max(1e-6, std::min(F[j][k],0.999999)); // make sure value is in (1e6, 0.999999) interval 
+	  // if(F[j][k]==0)
+	  // F[j][k] = 1e-6;
 	}
     }
   }

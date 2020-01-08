@@ -1,6 +1,6 @@
 #include <math.h>
 #include <fstream>
-
+#include <algorithm>
 
 double **allocDouble2b(size_t x,size_t y){
   double **ret= new double*[x];
@@ -60,8 +60,9 @@ void adaptFandeG(double **F, double **Q, double **genos, int nSites, int nInd, i
 
 	for(int k=0;k<K;k++){
 	  F[j][k] = sumAG[k]/(sumAG[k]+sumBG[k]);
-	  if(F[j][k]==0)
-	    F[j][k] = 1e-6;
+	  F[j][k] = std::max(1e-6, std::min(F[j][k],0.999999)); // make sure value is in (1e6, 0.999999) interval 
+	    //if(F[j][k]<=0)
+	    //F[j][k] = 1e-6;
 	}
 	
       }    
@@ -90,6 +91,7 @@ void ngscalcRes(double **r, double *mean_r, double **F, double **Q, int K, int n
 	
 	for(int k=0;k<K;k++){
 	  fpart+=F[j][k]*Q[i][k];
+	  
 	} 
 
 	double pp0=(1-fpart)*(1-fpart)*genos[j][3*i+2];
@@ -99,7 +101,13 @@ void ngscalcRes(double **r, double *mean_r, double **F, double **Q, int K, int n
 	double eG=(pp1+2*pp2)/sum;
 	
 	r[i][j] = eG - 2*fpart;
-	
+	/*	if(isnan(r[i][j])){
+
+	    fprintf(stderr, "nan in residual in site %i of individual %i when substracting ind freq of %.3f from expected geno %.3f \n",j,i,eG, fpart);
+	    // fprintf(stderr, "fpart is %.3f, sum ");
+	    exit(0);
+	    
+	    }*/
 	sum_r[i] += r[i][j];
 
        }
@@ -107,10 +115,8 @@ void ngscalcRes(double **r, double *mean_r, double **F, double **Q, int K, int n
   }
 
 
-  for(int i=0; i<nInd;i++){
+  for(int i=0; i<nInd;i++)
       mean_r[i] = sum_r[i] / usedSites[i];
-
-  }
 }
 
 
@@ -137,7 +143,11 @@ double correlateNGSRes(int nSites, double *r1, double *r2, double mean_r1, doubl
   }
   double cor;
   cor = cor_num/(sqrt(cor_den1)*sqrt(cor_den2));
-
+  /*if(isnan(cor)){
+    fprintf(stderr, "NaN generated when calculating residuals of individuals %i and %i \n", ind1, ind2);
+    fprintf(stderr, "Numerator was %.3f, denominator was square root of %.3f times %.3f mean residual 1 was %.3f and mean residual 2 %.3f\n",cor_num, cor_den1, cor_den2, mean_r1, mean_r2);
+    exit(0);
+    }*/
   return cor;
 
 }
