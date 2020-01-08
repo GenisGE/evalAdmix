@@ -42,7 +42,7 @@ Arguments:
 	 Setup (optional):
 	 
 	       -P 1 number of threads
-	       -autosomeMax 23	 autosome ends with this chromsome
+	       -autosomeMax 23	 autosome ends with this chromsome (needed only if genotype (plink) input)
 	       -nIts 5	 number of iterations to do for frequency correction; if set to 0 calculates correlation without correction (fast but biased)
 	       -useSites 1.0	 proportion of sites to use to calculate correlation of residuals
 	       -useInds filename     path to tab delimited file with first column containing all individuals ID and second column with 1 to include individual in analysis and 0 otherwise (default all individuals are included)

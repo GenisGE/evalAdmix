@@ -390,9 +390,9 @@ void info(){
   fprintf(stderr,"\t-qname path to admixture proportions file\n"); 
   fprintf(stderr,"\t-o name of the output file\n"); 
 
-  fprintf(stderr,"Setup:\n"); 
+  fprintf(stderr,"Setup (optional):\n"); 
   fprintf(stderr,"\t-P 1 number of threads\n");
-  fprintf(stderr,"\t-autosomeMax 23\t autosome ends with this chromsome\n");
+    fprintf(stderr,"\t-autosomeMax 23\t autosome ends with this chromsome (needed only if genotype (plink) input) \n");
   fprintf(stderr,"\t-nIts 5\t number of iterations to do for frequency correction; if set to 0 calculates correlation without correction (fast but biased)\n");
   fprintf(stderr,"\t-useSites 1.0\t proportion of sites to use to calculate correlation of residuals\n");
     fprintf(stderr,"\t-useInds filename\t path to tab delimited file with first column containing all individuals ID and second column with 1 to include individual in analysis and 0 otherwise (default all individuals are included)\n");
@@ -896,12 +896,12 @@ int main(int argc, char *argv[]){
     int nSites=d.nSites;
     int nInd=d.nInd;
     fprintf(stderr,"\t\t->K=%d\tnSites=%d\tnInd=%d\n",K,nSites,nInd);
-    pars->genos = d.genos;
+    pars -> genos = d.genos;
     pars -> keeps = d.keeps;
-    pars->K=K;
-    pars->nSites=nSites;
-    pars->nIndUse=nInd;
-    pars->nInd=nInd;
+    pars -> K=K;
+    pars -> nSites=nSites;
+    pars -> nIndUse=nInd;
+    pars -> nInd=nInd;
     pars -> nIts=nIts;
 
 
@@ -915,7 +915,7 @@ int main(int argc, char *argv[]){
       int *useIndstmp=new int[pars->nInd];
       for(int i = 0; i<(pars->nInd);i++)
 	useIndstmp[i] = 1;
-      pars->useInds = useIndstmp;
+      pars -> useInds = useIndstmp;
     }
     
     
@@ -975,7 +975,7 @@ int main(int argc, char *argv[]){
       pars -> nSites = nSitesNew;
       pars -> F = newF;
   
-      pars -> keeps =newKeeps;
+      pars -> keeps = newKeeps;
       pars -> genos = newGenos;
 
       fprintf(stderr, "%i sites left after downsampling\n", pars -> nSites);
