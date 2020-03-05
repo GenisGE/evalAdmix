@@ -1,4 +1,4 @@
-# Description
+# evalAdmix
 
 evalAdmix allows to evaluate the results of an admixture analysis. It takes as input the genotype data 
 (either called genotypes in plink files or genotype likelihoods beagle files) used in the admixture analysis and the frequency  
@@ -66,17 +66,21 @@ plotCorRes(cor_mat = r, pop = pop, title = "Admixture evaluation as correlation 
 Usage
 
 ```
-plotCorRes(cor_mat, pop, 
-           title="Correlation of residuals", min_z=NULL,max_z=NULL, 
-           is.ord=F, cex.main=1.5, cex.lab=1.5, cex.legend=1.5,
-	   color_palette=c("blue", "green", "red"),
-           pop_labels = c(T,T), plot_legend = T)
+plotCorRes(cor_mat, pop=rep(" ", nrow(cor_mat)), superpop=NULL,
+                       title="Correlation of residuals", min_z=NULL,max_z=NULL, 
+                       is.ord=F, cex.main=1.5, cex.lab=1.5, cex.legend=1.5, color_palette=c("#001260", "#EAEDE9", "#601200"),
+                       pop_labels = c(T,T), plot_legend = T, adjlab = 0.1, rotatelab=0){
+
 
 
 Arguments
 
+Required
 cor_mat	Correlation of residuals matrix.
-pop		Vector with individuals population criteria.
+
+Optional
+pop		Vector with individuals population criteria; will be used to group individuals and for mean correlation per population. Must have same length and order as there are individuals in correlation matrix.
+superpop	Vector with individual superpopulation criteria, to group populations. Must be consisten with pop, only used for labelling.
 title		Plot title.
 min_z		Minimum value in scale (values below will be plotted as dark blue).
 max_z		Maximum value in color scale (values above will be plotted as dark red).
@@ -85,6 +89,8 @@ cex.main cex.lab cex.legend	   Text size for title, population labels and legend
 color_palette	Vector of length 3 indicating (min, mid, max) color scale.
 pop_labels	Logical vector of length 2 indicating whether to write population labels in (y axis, x axis).
 plot_legend	Logical indicating whether legend with color scale should be plotted.
+adjlab		Number to adjust distance of labels to axes.
+rotatelab	Degrees to rotate labels.
 
 ```
 

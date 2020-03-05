@@ -1,8 +1,10 @@
-plotCorRes <- function(cor_mat, pop, 
+plotCorRes <- function(cor_mat, pop=rep(" ", nrow(cor_mat)), superpop=NULL,
                        title="Correlation of residuals", min_z=NULL,max_z=NULL, 
-                       is.ord=F, cex.main=1.5, cex.lab=1.5, cex.legend=1.5, color_palette=c("blue", "green", "red"),
-                       pop_labels = c(T,T), plot_legend = T){
-    
+                       is.ord=F, cex.main=1.5, cex.lab=1.5, cex.legend=1.5, color_palette=c("#001260", "#EAEDE9", "#601200"),
+                       pop_labels = c(T,T), plot_legend = T, adjlab = 0.1, rotatelab=0){
+
+    op <- par(mfrow=c(1,1) ,mar=c(5,4,4,2) +0.1,xpd=F)
+    on.exit(par(op))
     
     N <- dim(cor_mat)[1]
     
@@ -100,14 +102,28 @@ plotCorRes <- function(cor_mat, pop,
     if(min(cor_mat)<min_z) image(ifelse(t(cor_mat<min_z),1,NA),col="darkslateblue",add=T)
     image(ifelse(t(cor_mat==10),1,NA),col="black",add=T)
 
+    # put pop info
     if(pop_labels[2])
-        text(sort(tapply(1:length(pop),pop,mean)/length(pop)),-0.1,unique(pop),xpd=NA,cex=cex.lab)
+        text(sort(tapply(1:length(pop),pop,mean)/length(pop)),-adjlab,unique(pop),xpd=NA,cex=cex.lab, srt=rotatelab)
     if(pop_labels[1])
-        text(-0.1,sort(tapply(1:length(pop),pop,mean)/length(pop)),unique(pop),xpd=NA, cex=cex.lab,srt=90)
+        text(-adjlab,sort(tapply(1:length(pop),pop,mean)/length(pop)),unique(pop),xpd=NA, cex=cex.lab,srt=90-rotatelab)
     abline(v=grconvertX(cumsum(sapply(unique(pop),function(x){sum(pop==x)}))/N,"npc","user"),
-           col=1,lwd=1.2,xpd=F)
+           col=1,lwd=1,xpd=F)
     abline(h=grconvertY(cumsum(sapply(unique(pop),function(x){sum(pop==x)}))/N, "npc", "user"),
-           col=1,lwd=1.2,xpd=F)
+           col=1,lwd=1,xpd=F)
+    
+    # put superpop if not null
+    if(!is.null(superpop)){
+        if(pop_labels[2])
+            text(sort(tapply(1:length(superpop),superpop,mean)/length(superpop)),-adjlab-0.06,unique(superpop),xpd=NA,cex=cex.lab, srt=0, font=2)
+        if(pop_labels[1])
+            text(-adjlab-0.06,sort(tapply(1:length(superpop),superpop,mean)/length(superpop)),unique(superpop),xpd=NA, cex=cex.lab,srt=90,font=2)
+        abline(v=grconvertX(cumsum(sapply(unique(superpop),function(x){sum(superpop==x)}))/N,"npc","user"),
+               col=1,lwd=2,xpd=F)
+        abline(h=grconvertY(cumsum(sapply(unique(superpop),function(x){sum(superpop==x)}))/N, "npc", "user"),
+               col=1,lwd=2,xpd=F)
+        
+    }
      if(plot_legend){
          par(mar=c(5,0.5,4,2))
          plot(c(0,1),c(0,1),type = 'n', axes = F,xlab = '', ylab = '', main = '')    
