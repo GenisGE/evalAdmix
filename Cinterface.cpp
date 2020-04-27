@@ -1,3 +1,4 @@
+
 #include <iostream>
 #include <fstream>
 #include "Cinterface.h"
@@ -33,7 +34,12 @@
 #include "ngsevalAdmix.h"
 //#include "mafilter.h"
 
+
 using namespace std;
+
+
+// evalAdmix version 0.9
+const char* vers = "0.9";
 
 pthread_t *threads = NULL;
 pthread_t *threads1 = NULL;
@@ -474,7 +480,8 @@ void fex(const char* fileName){
 int main(int argc, char *argv[]){
   clock_t t=clock();//how long time does the run take
   time_t t2=time(NULL);
-  
+  // print version
+  printf("evalAdmix version %s\n", vers);
   // print commandline
   for(int i=0;i<argc;i++)
     printf("%s ",argv[i]);
