@@ -2,8 +2,7 @@
 
 evalAdmix allows to evaluate the results of an admixture analysis (i.e. the result of applying [ADMIXTURE](https://genome.cshlp.org/content/19/9/1655.long), [STRUCTURE](https://web.stanford.edu/group/pritchardlab/structure.html), [NGSadmix](http://www.popgen.dk/software/index.php/NgsAdmix) and similar). It only needs the input genotype data used for the previous admixture analysis and the output of that analysis (admixture proportions and ancestral population frequencies). The genotype input data can either be called genotypes in [binary plink format](https://www.cog-genomics.org/plink/1.9/formats#bed) or genotype likelihoods in [beagle format](http://www.popgen.dk/angsd/index.php/Genotype_Likelihoods#Beagle_format).
 
-The output is a pairwise correlation of residuals matrix between individuals. The correlation will be close to 0 in case of a good fit of the data to the admixture model. When individuals do not fit the model, individuals with similar demographic histories (i.e. usually individuals from the same population) will be positively correlated; and individuals with different histories but that are modelled as sharing one or more ancestral populations as admixture sources will have a 
-negative correlation. Positive correlation between a pair of individuals might also be due to relatedness.
+The output is a pairwise correlation of residuals matrix between individuals. The correlation will be close to 0 in case of a good fit of the data to the admixture model. When individuals do not fit the model, individuals with similar demographic histories (i.e. usually individuals from the same population) will be positively correlated; and individuals with different histories but that are modelled as sharing one or more ancestral populations as admixture sources will have a negative correlation. Positive correlation between a pair of individuals might also be due to relatedness.
 
 More detailed documentation can be found in [the wiki page](http://www.popgen.dk/software/index.php/EvalAdmix).
 
@@ -30,7 +29,7 @@ With genotype likelihoods
 ./evalAdmix -beagle inputBeagleFile.gz -fname myoutfiles.fopt.gz -qname myoutfiles.qopt -P 10 -o output.corres.txt
 ```
 
-You can find a tutorial with example input data in [the wiki page](http://www.popgen.dk/software/index.php/EvalAdmix).
+You can find a tutorial with example input data in [the wiki page](http://www.popgen.dk/software/index.php/EvalAdmix#Run_command_example).
 
 ```
 Arguments:
@@ -39,8 +38,8 @@ Arguments:
 		or
 	      	-beagle path to beagle file containing genotype likelihoods (alternative to -plink)
 		
-		-fname path to ancestral population frequencies file (tab delimited matrix where rows are sites and columns ancestral populations)
-	       	-qname path to admixture proportions file (tab delimited matrix where rows are individuals and columns ancestral populations)
+		-fname path to ancestral population frequencies file (space delimited matrix where rows are sites and columns ancestral populations)
+	       	-qname path to admixture proportions file (space delimited matrix where rows are individuals and columns ancestral populations)
 		
 	Optional:       
 	
@@ -49,7 +48,7 @@ Arguments:
 	 Setup (optional):
 	 
 	       -P 1 number of threads
-	       -autosomeMax 23	 autosome ends with this chromsome (needed only if genotype (plink) input)
+	       -autosomeMax 23	 autosome ends with this chromsome (needed only if using genotype input (-plink))
 	       -nIts 5	 number of iterations to do for frequency correction; if set to 0 calculates correlation without correction (fast but biased)
 	       -useSites 1.0	 proportion of sites to use to calculate correlation of residuals
 	       -useInds filename     path to tab delimited file with first column containing all individuals ID and second column with 1 to include individual in analysis and 0 otherwise (default all individuals are included)
@@ -104,11 +103,10 @@ adjlab lineswidthsuperpop		Number to adjust distance of population / superpopula
 rotatelabpop rotatelabsuperpop	 Degrees to rotate labels.
 lineswidth lineswidthsuperpop	 Width of lines separating populations and superpopulations
 
-
+```
 
 visFuns.R includes some other functions I find useful (order individuals, order ancestral populations, plot admixture proportions...).
 
-```
 
 
 # Citation
