@@ -11,7 +11,7 @@ plotCorRes <- function(cor_mat, pop=NULL, ord=NULL, superpop=NULL,
   
 
   if(is.null(ord)&!is.null(pop)) ord <- order(pop)
-  if(is.null(ord)&is.null(pop)) ord <- 1:nrow(q)
+  if(is.null(ord)&is.null(pop)) ord <- 1:nrow(cor_mat)
 
   if(is.null(pop)){
       pop <- rep(" ", nrow(cor_mat))
