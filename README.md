@@ -76,10 +76,10 @@ plotCorRes(cor_mat = r, pop = pop, ord=ord, title = "Admixture evaluation as cor
 Usage
 
 ```
-plotCorRes <- function(cor_mat, pop=NULL, ord=NULL, superpop=NULL,
-                       title="Correlation of residuals", min_z=NA,max_z=NA, 
-                       cex.main=1.5, cex.lab=1.5, cex.legend=1.5, color_palette=c("#001260", "#EAEDE9", "#601200"),
-                       pop_labels = c(T,T), plot_legend = T, adjlab = 0.1, rotatelabpop=0, rotatelabsuperpop=0,lineswidth=1, lineswidthsuperpop=2,
+plotCorRes(cor_mat = cor_mat, pop=NULL, ord=NULL, superpop=NULL,
+                       	  title="Correlation of residuals", min_z=NA,max_z=NA, 
+                      	  cex.main=1.5, cex.lab=1.5, cex.legend=1.5, color_palette=c("#001260", "#EAEDE9", "#601200"),
+                     	  pop_labels = c(T,T), plot_legend = T, adjlab = 0.1, rotatelabpop=0, rotatelabsuperpop=0,lineswidth=1, lineswidthsuperpop=2,
                        adjlabsuperpop=0.16,cex.lab.2 = 1.5)
 
 
