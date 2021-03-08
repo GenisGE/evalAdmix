@@ -286,7 +286,7 @@ void readDoubleGZ(double **d,int x,int y,const char*fname,int neg){
   char buf[lens];
   for(int i=0;i<x;i++){
     if(NULL==gzgets(fp,buf,lens)){
- 	fprintf(stderr,"Error: Only %d sites in frequency file (maybe increase buffer)\n",i);
+      fprintf(stderr,"Error: Only %d sites in frequency file, expected %d sites from plink/beagle file\n",i, x);
 	exit(0);
     }
     if(neg)
@@ -302,7 +302,7 @@ void readDoubleGZ(double **d,int x,int y,const char*fname,int neg){
     }
   }
   if(NULL!=gzgets(fp,buf,lens)){
-    fprintf(stderr,"Error: Too many sites in frequency file. Only %d sites in plink file\n",x);
+    fprintf(stderr,"Error: Too many sites in frequency file. Only %d sites in plink/beagle file\n",x);
     exit(0);
 
   }
