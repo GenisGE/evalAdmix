@@ -764,14 +764,15 @@ int main(int argc, char *argv[]){
     pars -> isMissing = isMissing;
     pars -> genos = genosT;
 
+    /*
     int missing = 0;    
     for(int i=0; i < nInd; i++){
-      for(int j =0; j<nSites;j++)
-	missing += isMissing[j][i];
+     for(int j =0; j<nSites;j++)
+    	missing += isMissing[j][i];
       //fprintf(stderr, "int %i has %i missing sites\n", i, missing);
     missing = 0;
     }
-
+    */
     
     }
     
