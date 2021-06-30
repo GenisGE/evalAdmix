@@ -76,7 +76,7 @@ void calcRes(double **r, double *mean_r, int **G, double **Q, double **F, int K,
   }
 
   for(int j=0; j<nSites;j++){
-    int u=0;
+    //int u=0;
     for(int i=0; i<nInd;i++){
       if(useInd[i]){
       if(!isMissing[j][i]){
@@ -90,19 +90,22 @@ void calcRes(double **r, double *mean_r, int **G, double **Q, double **F, int K,
 	}
 
 	 
-	r[u][j] = G[j][i] - 2 * fpart;
-	sum_r[u] += r[u][j];
-	usedSites[u]++;
-	u++;
+	r[i][j] = G[j][i] - 2 * fpart;
+	sum_r[i] += r[i][j];
+	usedSites[i]++;
+	//	u++;
       }
+      //else u++;
       }
       
     }
   }
 
-  for(int i=0; i<nIndUse;i++)
+  for(int i=0; i<nIndUse;i++){
+    //fprintf(stderr, "ind %i has %i sites with data\n", i, usedSites[i]); 
     mean_r[i] = sum_r[i]/usedSites[i];
 
+  }
 }
 
 
@@ -118,8 +121,8 @@ double correlateRes(int nSites, double *r1, double *r2, double mean_r1, double m
   
 
   for(int j=0; j<nSites;j++){
-    if(j==368)
-      continue;
+    //if(j==368)
+    //continue;
     if(!isMissing[j][ind1]&!isMissing[j][ind2]){
       d_r1 = (r1[j] - mean_r1);
       d_r2 = (r2[j] - mean_r2);
@@ -131,7 +134,6 @@ double correlateRes(int nSites, double *r1, double *r2, double mean_r1, double m
   }
   double cor;
   cor = cor_num/(sqrt(cor_den1)*sqrt(cor_den2));
-  
   return cor;
 
 }

@@ -38,8 +38,8 @@
 using namespace std;
 
 
-// evalAdmix version 0.9
-const char* vers = "0.9";
+// evalAdmix version 0.95 fixed serious bug with missing data in genotype data version
+const char* vers = "0.95";
 
 pthread_t *threads = NULL;
 pthread_t *threads1 = NULL;
@@ -748,12 +748,13 @@ int main(int argc, char *argv[]){
       
       genosT[j] = new int[nInd];
       isMissing[j] = new int[nInd];
-      
+    
       for(int i=0; i<nInd; i++){
 	genosT[j][i] = pars->data->matrix[i][j];
 			
-	if(genosT[j][i]==3)
+	if(genosT[j][i]==3){
 	  isMissing[j][i] = 1;
+	}
 	
 	else
 	  isMissing[j][i] = 0;
@@ -762,6 +763,15 @@ int main(int argc, char *argv[]){
     
     pars -> isMissing = isMissing;
     pars -> genos = genosT;
+
+    int missing = 0;    
+    for(int i=0; i < nInd; i++){
+      for(int j =0; j<nSites;j++)
+	missing += isMissing[j][i];
+      //fprintf(stderr, "int %i has %i missing sites\n", i, missing);
+    missing = 0;
+    }
+
     
     }
     
