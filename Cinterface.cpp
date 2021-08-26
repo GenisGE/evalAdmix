@@ -352,7 +352,7 @@ int getK(const char*fname){
     fprintf(stderr,"can't open:%s\n",fname);
     exit(0);
   }
-  int lens=100000 ;
+  int lens=1000000 ;
   char buf[lens];
   if(NULL==fgets(buf,lens,fp)){
     fprintf(stderr,"Increase buffer\n");
