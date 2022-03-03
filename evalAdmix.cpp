@@ -10,7 +10,18 @@ double **allocDouble2(size_t x,size_t y){
 }
 
 
-void adaptF(double **F, int  **G, int K, double **Q, int nInd, int nSites, int withoutInd, int nIts, int **isMissing){
+
+float **allocFloat2(size_t x,size_t y){
+  float **ret= new float*[x];
+  for(size_t i=0;i<x;i++)
+    ret[i] = new float[y];
+  //printf("\t-> Tried to allocate: %.3f gig memory\n",(float)sizeof(float)*x*y/1000000000);
+  return ret;
+}
+
+
+
+void adaptF(double **F, unsigned short int **G, int K, double **Q, int nInd, int nSites, int withoutInd, int nIts, int **isMissing){
 
 
   for(int it=0; it<nIts; it++){
@@ -64,7 +75,7 @@ void adaptF(double **F, int  **G, int K, double **Q, int nInd, int nSites, int w
 }
 
 
-void calcRes(double **r, double *mean_r, int **G, double **Q, double **F, int K, int nSites, int nInd,int nIndUse,  int **isMissing, int *useInd){
+void calcRes(float **r, float *mean_r, unsigned short int **G, double **Q, double **F, int K, int nSites, int nInd,int nIndUse,  int **isMissing, int *useInd){
 
   double sum_r[nIndUse];
   int usedSites[nIndUse];
@@ -111,7 +122,7 @@ void calcRes(double **r, double *mean_r, int **G, double **Q, double **F, int K,
 
 
  
-double correlateRes(int nSites, double *r1, double *r2, double mean_r1, double mean_r2, int **isMissing, int ind1, int ind2){
+double correlateRes(int nSites, float *r1, float *r2, double mean_r1, double mean_r2, int **isMissing, int ind1, int ind2){
 
   double cor_num=0;
   double cor_den1=0;
@@ -140,14 +151,14 @@ double correlateRes(int nSites, double *r1, double *r2, double mean_r1, double m
 
  
 
-void evalAdmix(double *cor, int ind1u, int ind1, double **r, double *mean_r, int **G, int K, double **Q, double **F, int nInd, int nSites,int nIts, int **isMissing, int nIndUse, int *useInd){
+void evalAdmix(double *cor, int ind1u, int ind1, float **r, float *mean_r, unsigned short int **G, int K, double **Q, double **F, int nInd, int nSites,int nIts, int **isMissing, int nIndUse, int *useInd){
 
-  double **rAdapted=allocDouble2(nIndUse, nSites);
-  double *mean_rAdapted = new double[nIndUse];
+  float **rAdapted=allocFloat2(nIndUse, nSites);
+  float *mean_rAdapted = new float[nIndUse];
   double **fAdapted=allocDouble2(nSites,K);
 
 
-   
+
   for(int j=0; j<nSites;j++){ // initial values for adapted F are normal F
     for(int k=0; k<K;k++){
       fAdapted[j][k] = F[j][k];

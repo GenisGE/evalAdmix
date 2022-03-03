@@ -36,17 +36,19 @@ iMatrix *allocIntMatrix(int x, int y){
   try{
     iMatrix *tmp = new iMatrix();
     int **ppi = new int*[x];
-    int *curPtr = new int [x * y];
     
+
+    // int *curPtr = new int [x * y];
     for( int i = 0; i < x; ++i) {
-      *(ppi + i) = curPtr;
-      curPtr += y;
+      *(ppi + i) = new int[y];
+      // curPtr += y;
     }
 #if _fillup_
     for (int i=0;i<x;i++)
       for(int n=0;n<y;n++)
 	ppi[i][n]=0;
 #endif
+    printf("\t-> Allocated: %.3f gig memory\n",(float)sizeof(int)*x*y/1000000000);
     tmp->matrix=ppi;
     tmp->x=x;
     tmp->y=y;
@@ -57,6 +59,33 @@ iMatrix *allocIntMatrix(int x, int y){
     exit(0);
   }
 }
+
+usiMatrix *allocUSIntMatrix(int x, int y){
+  try{
+    usiMatrix *tmp = new usiMatrix();
+    unsigned short int **ppi = new unsigned short int*[x];
+    // int *curPtr = new int [x * y];
+    for( int i = 0; i < x; ++i) {
+      *(ppi + i) = new unsigned short int[y];
+      // curPtr += y;
+    }
+#if _fillup_
+    for (int i=0;i<x;i++)
+      for(int n=0;n<y;n++)
+	ppi[i][n]=0;
+#endif
+    printf("\t-> Allocated: %.3f gig memory\n",(float)sizeof(unsigned short int)*x*y/1000000000);
+    tmp->matrix=ppi;
+    tmp->x=x;
+    tmp->y=y;
+    return tmp;
+  }catch(std::exception & e){
+    printf("\t-> Tried to allocate: %.3f gig memory\n",(float)sizeof(int)*x*y/1000000000);
+    printf("\t-> Allocation failed, likely cause: need more memory, will exit.\n");
+    exit(0);
+  }
+}
+
 
 
 void killArray(dArray *var){
@@ -87,6 +116,11 @@ void killIntMatrix(int **var){
   delete [] var;
 }
 
+void killUSIntMatrix(unsigned short int **var){
+  delete [] *var;
+  delete [] var;
+}
+
 void killMatrix(dMatrix *var){
   killDoubleMatrix(var->matrix);
   delete var;
@@ -98,8 +132,10 @@ void killMatrix(iMatrix *var){
   delete var;
 }
 
-
-
+void killMatrix(usiMatrix *var){
+  killUSIntMatrix(var->matrix);
+  delete var;
+}
 
 void killSnpMatrix(snpMatrix *mat){
   killMatrix(mat->pba);

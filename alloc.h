@@ -23,16 +23,17 @@
 #endif
 
 
-
-
 iMatrix *allocIntMatrix(int x, int y);
+usiMatrix *allocUSIntMatrix(int x, int y);
 void killArray(dArray *var);
 void killArray(iArray *var);
 void killArray(bArray *var);
 void killDoubleMatrix(double **var);
 void killIntMatrix(int **var);
+void killUSIntMatrix(int **var);
 void killMatrix(dMatrix *var);
 void killMatrix(iMatrix *var);
+void killMatrix(usiMatrix *var);
 void killSnpMatrix(snpMatrix *mat);
 void killPars(pars *mat);
 dMatrix *allocDoubleMatrix(int x, int y);

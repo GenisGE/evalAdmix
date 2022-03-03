@@ -39,7 +39,8 @@ using namespace std;
 
 
 // evalAdmix version 0.95 fixed serious bug with missing data in genotype data version
-const char* vers = "0.95";
+// evalAdmix version 0.96 improved reading of data for plink files so it can read big data. also improved memory usage by changing genotypes type from in to unsigned short int
+const char* vers = "0.96";
 
 pthread_t *threads = NULL;
 pthread_t *threads1 = NULL;
@@ -368,10 +369,21 @@ int getK(const char*fname){
 }
 
 
+
+float **allocFloat(size_t x,size_t y){
+  float **ret= new float*[x];
+  for(size_t i=0;i<x;i++)
+    ret[i] = new float[y];
+  //printf("\t-> Tried to allocate: %.3f gig memory\n",(float)sizeof(float)*x*y/1000000000);
+  return ret;
+}
+
+
 double **allocDouble(size_t x,size_t y){
   double **ret= new double*[x];
   for(size_t i=0;i<x;i++)
     ret[i] = new double[y];
+  //printf("\t-> Tried to allocate: %.3f gig memory\n",(float)sizeof(double)*x*y/1000000000);
   return ret;
 }
 
@@ -398,7 +410,7 @@ void info(){
 
   fprintf(stderr,"Setup (optional):\n"); 
   fprintf(stderr,"\t-P 1 number of threads\n");
-    fprintf(stderr,"\t-autosomeMax 23\t autosome ends with this chromsome (needed only if genotype (plink) input) \n");
+  //    fprintf(stderr,"\t-autosomeMax 23\t autosome ends with this chromsome (needed only if genotype (plink) input) \n");
   fprintf(stderr,"\t-nIts 5\t number of iterations to do for frequency correction; if set to 0 calculates correlation without correction (fast but biased)\n");
   fprintf(stderr,"\t-useSites 1.0\t proportion of sites to use to calculate correlation of residuals\n");
     fprintf(stderr,"\t-useInds filename\t path to tab delimited file with first column containing all individuals ID and second column with 1 to include individual in analysis and 0 otherwise (default all individuals are included)\n");
@@ -494,7 +506,7 @@ int main(int argc, char *argv[]){
  }
   
   const char *outname = "output.corres.txt";
-  int autosomeMax = 23;
+  //  int autosomeMax = 23;
   int nIts = 5;
   string geno= "";
   string pos = "";
@@ -532,8 +544,8 @@ int main(int argc, char *argv[]){
       nIts=atoi(argv[argPos+1]);
         else if(strcmp(argv[argPos],"-useSites")==0)
      useSites=atof(argv[argPos+1]);
-    else if(strcmp(argv[argPos],"-autosomeMax")==0)
-      autosomeMax=atoi(argv[argPos+1]);
+    //    else if(strcmp(argv[argPos],"-autosomeMax")==0)
+    // autosomeMax=atoi(argv[argPos+1]);
     else if(strcmp(argv[argPos],"-minMaf")==0||strcmp(argv[argPos],"-maf")==0)
       minMaf=atof(argv[argPos+1]);
     else if(strcmp(argv[argPos],"-plink")==0){
@@ -606,11 +618,11 @@ int main(int argc, char *argv[]){
 
   
     myPars *pars =  new myPars();
-    plinkKeep = doBimFile(pars,plink_bim.c_str()," \t",autosomeMax);  
+    plinkKeep = doBimFile(pars,plink_bim.c_str()," \t");  
     fprintf(stdout,"\t-> Plink file contains %d autosomale SNPs\n",plinkKeep->numTrue);
     fprintf(stdout,"\t-> reading genotypes ");
     fflush(stdout);
-    iMatrix *tmp = bed_to_iMatrix(plink_bed.c_str(),numInds,plinkKeep->x);
+    usiMatrix *tmp = bed_to_usiMatrix(plink_bed.c_str(),numInds,plinkKeep->x);
     fprintf(stdout," - done \n");
     fflush(stdout);
     if(tmp->y==plinkKeep->numTrue){
@@ -628,11 +640,13 @@ int main(int argc, char *argv[]){
 
     }
     killArray(plinkKeep);
-    fprintf(stdout,"\t-> sorting ");
-    fflush(stdout);
-    mysort(pars,0);
-    fprintf(stdout," - done \n");
-    fflush(stdout);
+    if(0){ //no need to sort, it's slow and uses lots of memory
+      fprintf(stdout,"\t-> sorting ");
+      fflush(stdout);
+      mysort(pars,0);
+      fprintf(stdout," - done \n");
+      fflush(stdout);
+    }
     // printf("Dimension of genodata:=(%d,%d), positions:=%d, chromosomes:=%d\n",pars->data->x,pars->data->y,pars->position->x,pars->chr->x);
     if(pars->data->y != pars->chr->x || pars->position->x != pars->data->y){
       printf("Dimension of data input doesn't have compatible dimensions, program will exit\n");
@@ -686,7 +700,9 @@ int main(int argc, char *argv[]){
       int nSitesLeft = nSites;
       int nSitesNeeded = nSitesNew;
 
-      int **genosT = new int*[nSitesNew];
+      //int **genosT = new int*[nSitesNew];
+      unsigned short int **genosT = new unsigned short int*[nSitesNew];
+      
       int **isMissing = new int*[nSitesNew];
       double **newF = new double*[nSitesNew];
 
@@ -700,7 +716,7 @@ int main(int argc, char *argv[]){
 	if(r<p){
 	  
 	  nSitesNeeded --;
-	  genosT[jNew] = new int[nInd];
+	  genosT[jNew] = new unsigned short int[nInd];
 	  isMissing[jNew] = new int[nInd];
 	  newF[jNew] = new double[K];
  
@@ -731,6 +747,12 @@ int main(int argc, char *argv[]){
     pars -> isMissing = isMissing;
     pars -> genos = genosT;
 
+    // remove matrix after transposing to release memory
+    for(unsigned short int i=0; i<nInd; i++){
+      delete[] pars -> data -> matrix[i];
+    }
+    delete[] pars -> data -> matrix;
+    
     fprintf(stderr, "%d sites left after downsampling\n\n", pars -> nSites);   
     }
 
@@ -741,12 +763,12 @@ int main(int argc, char *argv[]){
     int **isMissing= new int*[nSites];
 
     // Transposed geno matrix
-    int **genosT = new int*[nSites];
+    unsigned short int **genosT = new unsigned short int*[nSites];
     // PROBABLY COULD DO THIS WHEN READING DATA AND THEN ONLY HAVE ONE MATRIX IN MEMORY
 
     for(int j=0; j<nSites;j++){
       
-      genosT[j] = new int[nInd];
+      genosT[j] = new unsigned short int[nInd];
       isMissing[j] = new int[nInd];
     
       for(int i=0; i<nInd; i++){
@@ -764,6 +786,13 @@ int main(int argc, char *argv[]){
     pars -> isMissing = isMissing;
     pars -> genos = genosT;
 
+    
+    // remove matrix after transposing to release memory
+    for(unsigned short int i=0; i<nInd; i++){
+      delete[] pars -> data -> matrix[i];
+    }
+    delete[] pars -> data -> matrix;
+
     /*
     int missing = 0;    
     for(int i=0; i < nInd; i++){
@@ -778,8 +807,8 @@ int main(int argc, char *argv[]){
     
      
     double **cor=allocDouble(pars->nIndUse,pars->nIndUse);
-    double **r=allocDouble(pars->nIndUse,pars->nSites);
-    double *mean_r=new double[pars->nIndUse];
+    float **r=allocFloat(pars->nIndUse,pars->nSites);
+    float *mean_r=new float[pars->nIndUse];
     
 
     pars -> r = r;

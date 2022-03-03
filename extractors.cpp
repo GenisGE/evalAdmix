@@ -24,6 +24,16 @@ iMatrix *extractOK(iArray *okList,iMatrix *matr){
 
 }
 
+usiMatrix *extractOK(iArray *okList,usiMatrix *matr){
+  usiMatrix *returnMatrix = allocUSIntMatrix(matr->x,okList->x);
+  for(int j=0;j<matr->x;j++)
+    for(int i=0;i<okList->x;i++)
+      returnMatrix->matrix[j][i] = matr->matrix [j] [okList->array[i]];
+  return returnMatrix;
+
+}
+
+
 dMatrix *extractOK(iArray *okList,dMatrix *matr){
   dMatrix *returnMatrix = allocDoubleMatrix(matr->x,okList->x);
   for(int j=0;j<matr->x;j++)
@@ -77,6 +87,18 @@ iArray *extractOK(bArray *okList,iArray *array){
 
 iMatrix *extractOK(bArray *okList,iMatrix *matr){
   iMatrix *returnMatrix = allocIntMatrix(matr->x,okList->numTrue);
+  int atPos =0;
+  for(int i=0;i<matr->y;i++)
+    if(okList->array[i]){
+      for(int j=0;j<matr->x;j++)
+	returnMatrix->matrix[j][atPos] = matr->matrix [j] [i];
+      atPos++;
+    }
+  return returnMatrix;
+}
+
+usiMatrix *extractOK(bArray *okList,usiMatrix *matr){
+  usiMatrix *returnMatrix = allocUSIntMatrix(matr->x,okList->numTrue);
   int atPos =0;
   for(int i=0;i<matr->y;i++)
     if(okList->array[i]){

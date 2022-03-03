@@ -57,7 +57,7 @@ void mysort(myPars *pars,int print_info){
     
     dArray *newPos = allocDoubleArray(pars->position->x);
     iArray *newChr = allocIntArray(pars->chr->x);
-    iMatrix *newData = allocIntMatrix(pars->data->x,pars->data->y);
+    usiMatrix *newData = allocUSIntMatrix(pars->data->x,pars->data->y);
     for(unsigned int i=0;i<data.size();i++) { 
       dats v= data[i];
       newPos->array[i] = v.pos;

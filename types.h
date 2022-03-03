@@ -56,6 +56,44 @@ typedef struct  {
   }
 }iMatrix ;
 
+
+
+typedef struct  {
+  int x;
+  int y;
+  unsigned short int** matrix;
+  void info(const std::string name){
+    printf("iMatrix:%s dims= (%d,%d) \n",name.c_str(),x,y);
+  }
+
+  void print(const char *st,const char *file){
+    if(file==NULL){
+      if(st!=NULL)
+	printf("\niMatrix dims: %s = (%d,%d)\n",st,x,y);
+      for (int i=0;i<x;i++){
+	for (int j=0;j<y;j++)
+	  printf("%hu ",matrix[i][j] );
+	printf("\n");
+      }
+    } else{
+      FILE *pFile;
+      pFile = fopen(file,"w");
+      if(st!=NULL)
+
+	fprintf(pFile,"\niMatrix dims of: %s = (%d,%d)\n",st,x,y);
+      for (int i=0;i<x;i++){
+	for (int j=0;j<y;j++)
+	  fprintf(pFile,"%hu ",matrix[i][j]);
+	fprintf(pFile,"\n");
+      }
+      fclose(pFile);
+    }
+  }
+}usiMatrix ;
+
+
+
+
 //alloc by allocDoubleMatrix
 //deall by killMatrix
 typedef struct{
@@ -402,15 +440,16 @@ typedef struct  { //pars used by relateHMM
 typedef struct  { //pars used by evalAdmix
   //?? min;
   //pointer
-  iMatrix *data; //1
+  usiMatrix *data; //1
   iArray *chr; //1
   dArray *position;//1
-  int **genos;// transposed geno matrix for faster indexing in loops
+  //int **genos;  transposed geno matrix for faster indexing in loops
+  unsigned short int **genos;
   
   double **F;
   double **Q;
-  double **r;
-  double *mean_r;
+  float **r;
+  float *mean_r;
   int nIts;
   int K;
   int nInd;

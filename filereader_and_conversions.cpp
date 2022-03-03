@@ -509,14 +509,17 @@ iMatrix *bed_to_iMatrix(const char* file, int nrow,int ncol) {
   
   
   iMatrix *returnMat = allocIntMatrix(nrow,ncol);
-  int ncell = nrow*ncol;
-  unsigned char *result = new unsigned char[nrow*ncol]; 
-  memset(result, 0x00, ncell);
+  unsigned char *result = new unsigned char[1];
+  memset(result, 0x00, 1);
+  // int ncell = nrow*ncol;
+  // unsigned char *result = new unsigned char[nrow*ncol]; 
+  // memset(result, 0x00, ncell);
 
   /* Read in data */
 
   int snp_major = start[2];
-  int part=0, ij=0, i=0, j=0;
+  int part=0, i=0, j=0;
+  size_t ij=0;
   while (1) {
     unsigned char byte;
     if (!part) {
@@ -529,8 +532,10 @@ iMatrix *bed_to_iMatrix(const char* file, int nrow,int ncol) {
     unsigned char code = byte & mask;
     byte = byte >> 2;
     part--;
-    result[ij] = recode[code];
-    returnMat->matrix[i][j] = result[ij];
+    // result[ij] = recode[code];
+    // returnMat->matrix[i][j] = result[ij];
+    result[0] = recode[code];
+    returnMat->matrix[i][j] = result[0];
     if(returnMat->matrix[i][j]==3)
       returnMat->matrix[i][j]=1;
     else if(returnMat->matrix[i][j]==1)
@@ -566,6 +571,99 @@ iMatrix *bed_to_iMatrix(const char* file, int nrow,int ncol) {
   delete [] result;
   return returnMat;
 }
+
+usiMatrix *bed_to_usiMatrix(const char* file, int nrow,int ncol) {
+
+  //  const unsigned char recode[4] = {'\x01', '\x00', '\x02', '\x03'};
+  //0,1,2: 3 is missing 
+  const unsigned char recode[4] = { '\x02','\x01', '\x03', '\x00'};
+  const unsigned char mask = '\x03';
+
+
+  FILE *in = fopen(file, "r");
+  if (!in){
+    printf("Couln't open input file: %s", file);
+    exit(0);
+  }
+  unsigned char start[3];
+  if (fread(start, 1, 3, in)!=3){
+    printf("Failed to read first 3 bytes");
+    exit(0);
+  }
+  if (start[0]!='\x6C' || start[1]!='\x1B'){
+    printf("Input file does not appear to be a .bed file (%X, %X)", 
+	   start[0], start[1]);
+    exit(0);
+  }
+  /* Create output object */
+  
+  usiMatrix *returnMat = allocUSIntMatrix(nrow,ncol);
+
+
+  unsigned char *result = new unsigned char[1];
+  memset(result, 0x00, 1);
+  // int ncell = nrow*ncol;
+  // unsigned char *result = new unsigned char[nrow*ncol]; 
+  // memset(result, 0x00, ncell);
+
+  /* Read in data */
+
+  int snp_major = start[2];
+  int part=0, i=0, j=0;
+  size_t ij=0;
+  while (1) {
+    unsigned char byte;
+    if (!part) {
+      if (feof(in) || !fread(&byte, 1, 1, in)) {
+	printf("Unexpected end of file reached");
+	exit(0);
+      }
+      part = 4;
+    }
+    unsigned char code = byte & mask;
+    byte = byte >> 2;
+    part--;
+    // result[ij] = recode[code];
+    // returnMat->matrix[i][j] = result[ij];
+    result[0] = recode[code];
+    returnMat->matrix[i][j] = result[0];
+    if(returnMat->matrix[i][j]==3)
+      returnMat->matrix[i][j]=1;
+    else if(returnMat->matrix[i][j]==1)
+      returnMat->matrix[i][j]=3;
+    else if(returnMat->matrix[i][j]<0 || returnMat->matrix[i][j]>3){
+      printf("Problem in bed file at position=(%d,%d)=%d\n",i,j,returnMat->matrix[i][j]);
+      exit(0);
+    }
+    // printf("(%d,%d)=%d ",i,j,result[ij]);
+    if (snp_major) {
+      ij++;
+      i++;
+      if (i==nrow) {
+	i = part = 0;
+	j++;
+	if (j==ncol)
+	  break;
+      }
+    }	
+    else {
+      ij += nrow;
+      j++;
+      if (j==ncol){
+	j = part = 0;
+	i++;
+	if (i==nrow)
+	  break;
+	ij = i;
+      }
+    }
+  }
+  fclose(in);
+  delete [] result;
+  return returnMat;
+}
+
+
 int numberOfLines(const char *filename){
   const int SIZE=500000;
   char buffer[SIZE];
@@ -594,7 +692,7 @@ and the correct pars->chromo and pars->positions.
 
 This is rather slow because we use make a new vector on each line.
 This can be optimized in future versions. */
-bArray *doBimFile(myPars* pars,const char *filename,const std::string delim,int autosomeMax){
+bArray *doBimFile(myPars* pars,const char *filename,const std::string delim){
    ///@param filename A filename to read.@param delim A string of delimiters.
   
   std::vector<int> chromos;//for all lines
@@ -641,8 +739,6 @@ bArray *doBimFile(myPars* pars,const char *filename,const std::string delim,int 
     ret->array[i] = 1;
     numTrue++;
  
-    if(chromos[i]==0 || chromos[i]>=autosomeMax )
-      warn=1;
 
   }
   ret->numTrue = numTrue;
@@ -664,10 +760,7 @@ bArray *doBimFile(myPars* pars,const char *filename,const std::string delim,int 
 
 
 
-  if(warn){
 
-    fprintf(stderr,"Warning the plink file appears to have non autosomal chromosomes (chromosome number > 22) and/or undefined chromosomes (chromosome name=0)\n");
-  }
   return ret;
 }
 
