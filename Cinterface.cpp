@@ -1046,13 +1046,13 @@ int main(int argc, char *argv[]){
     if(nThreads==1){
       int u=0;
       for(int i=0;i<(nInd-1);i++){
-	for(int i=0; i<(nInd-1);i++){
+	//for(int i=0; i<(nInd-1);i++){
 	  if(pars->useInds[i]){
 	    fprintf(stderr, "Estimating freqs without ind %d\r",i);
 	
-	    ngsevalAdmix(cor[u], u,i, pars->r, pars->mean_r, pars->genos, pars->K,pars->Q,pars->F,pars->nInd,pars->nSites,pars->nIts,pars->keeps, pars->nIndUse);
+	    ngsevalAdmix(cor[u], u, i, pars->r, pars->mean_r, pars->genos, pars->K,pars->Q,pars->F,pars->nInd,pars->nSites,pars->nIts,pars->keeps, pars->nIndUse);
 	    u++;
-	  }
+	    // }
 	}
       }
     } 
