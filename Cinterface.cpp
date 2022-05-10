@@ -40,7 +40,8 @@ using namespace std;
 
 // evalAdmix version 0.95 fixed serious bug with missing data in genotype data version
 // evalAdmix version 0.96 improved reading of data for plink files so it can read big data. also improved memory usage by changing genotypes type from in to unsigned short int
-const char* vers = "0.96";
+// evalAdmix version 0.961 fix small stupid bug in nonmultithreaded ngs version (there was an extra for loop across indivdiuals)
+const char* vers = "0.961";
 
 pthread_t *threads = NULL;
 pthread_t *threads1 = NULL;
