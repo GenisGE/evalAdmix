@@ -41,7 +41,8 @@ using namespace std;
 // evalAdmix version 0.95 fixed serious bug with missing data in genotype data version
 // evalAdmix version 0.96 improved reading of data for plink files so it can read big data. also improved memory usage by changing genotypes type from in to unsigned short int
 // evalAdmix version 0.961 fix small stupid bug in nonmultithreaded ngs version (there was an extra for loop across indivdiuals)
-const char* vers = "0.961";
+// evalAdmix version 0.962 added -minLrt and -minInd filters for compatibility with NGSadmix fitlering. just copied a few functions from ngsadmix32.cpp
+const char* vers = "0.962";
 
 pthread_t *threads = NULL;
 pthread_t *threads1 = NULL;
@@ -66,6 +67,19 @@ eachNGSPars *allNGSPars=NULL;
 
 
 
+
+// copied from ngsadmix code. gives -log like site is polimorphic
+double likeFixedMinor(double p,double *likes,int numInds,char *keepInd){
+  // should these actually be normed genotype likelihoods? Or not normed?
+  // only used for checking minLrt
+  // returns minus the log of the likelihood
+  double totalLike=0;
+  for(int i=0;i<numInds;i++){
+    if(keepInd[i])
+      totalLike+=log(likes[i*3+0]*(1-p)*(1-p)+likes[i*3+1]*2.0*p*(1-p)+likes[i*3+2]*p*p);
+  }
+  return -totalLike;
+}
 
 
 
@@ -240,7 +254,7 @@ bgl readBeagle(const char* fname) {
 }
 
 
-
+// Following three functions are copied from ngsadmix for compatitiliby of fitlers
 void filterMinMaf(bgl &d,float minMaf){
   //  fprintf(stderr,"WARNING filtering minMaf=%f \n",minMaf);
   int posi =0;
@@ -262,6 +276,51 @@ void filterMinMaf(bgl &d,float minMaf){
   d.nSites=posi;
 }
 
+
+//void modLikesMiss(bgl &d,int minInd){
+void filterMiss(bgl &d,int minInd){
+  //  fprintf(stderr,"WARNING filtering mis=%d \n",minInd);
+  int posi =0;
+  for(int s=0;s<d.nSites;s++){
+    if(d.keepInd[s]>minInd){
+      d.genos[posi] = d.genos[s];
+      d.major[posi] = d.major[s];
+      d.minor[posi] = d.minor[s];
+      d.ids[posi] = d.ids[s];
+      d.keeps[posi] = d.keeps[s];
+      d.keepInd[posi] = d.keepInd[s];
+      d.mafs[posi] = d.mafs[s];
+      posi++;   
+    }else{
+      // fprintf(stderr,"skippping\n");
+    }
+  }
+  d.nSites=posi;
+}
+
+//void modLikesMinLrt(bgl &d,float minLrt){
+void filterMinLrt(bgl &d,float minLrt){
+  //  fprintf(stderr,"WARNING filtering minlrt=%f \n",minLrt);
+  int posi =0;
+  for(int s=0;s<d.nSites;s++){
+    float lik=likeFixedMinor(d.mafs[s],d.genos[s],d.nInd,d.keeps[s]);
+    float lik0=likeFixedMinor(0.0,d.genos[s],d.nInd,d.keeps[s]);
+    //    fprintf(stderr,"minlrt=%f mafs[%d]=%f lik=%f lik0=%f 2*(lik0-lik)=%f\n",minLrt,s,d.mafs[s],lik,lik0,2.0*(lik0-lik));
+    if(2.0*(lik0-lik)>minLrt){
+      d.genos[posi] = d.genos[s];
+      d.major[posi] = d.major[s];
+      d.minor[posi] = d.minor[s];
+      d.ids[posi] = d.ids[s];
+      d.keeps[posi] = d.keeps[s];
+      d.keepInd[posi] = d.keepInd[s];
+      d.mafs[posi] = d.mafs[s];
+      posi++;   
+    }else{
+      //  fprintf(stderr,"skippping\n");
+    }
+  }
+  d.nSites=posi;
+}
 
 
 void dalloc(bgl &b){
@@ -416,7 +475,11 @@ void info(){
   fprintf(stderr,"\t-useSites 1.0\t proportion of sites to use to calculate correlation of residuals\n");
     fprintf(stderr,"\t-useInds filename\t path to tab delimited file with first column containing all individuals ID and second column with 1 to include individual in analysis and 0 otherwise (default all individuals are included)\n");
   fprintf(stderr, "\t-misTol 0.05 \t tolerance for considering site as missing when using genotype likelihoods. Use same value as used in NGSadmix to keep compatibility when using genotype likelihoods (-beagle)\n");
+
+  fprintf(stderr,"\n   Filtering of genotype likelihoods\n"); 
     fprintf(stderr, "\t-minMaf 0.05 \t minimum minor allele frequency to keep site. Use same value as used in NGSadmix to keep compatibility when using genotype likelihoods (-beagle)\n");
+  fprintf(stderr,"\t-minLrt Minimum likelihood ratio value for maf>0 to keep site. Use same value as used in NGSadmix to keep compatibility when using genotype likelihoods (-beagle)\n"); 
+  fprintf(stderr,"\t-minInd Minumum number of informative individuals to keep sites. Use same value as used in NGSadmix to keep compatibility when using genotype likelihoods (-beagle)\n");
 
 
 
@@ -518,6 +581,8 @@ int main(int argc, char *argv[]){
   int nThreads =1;
   int selectInds=0;
   float minMaf = 0.05;
+  float minLrt = 0;
+  float minInd = 0;
   double useSites=1.0;
   bArray *plinkKeep = NULL; //added in 0.97;
   bArray *useIndsArray = NULL;
@@ -549,6 +614,10 @@ int main(int argc, char *argv[]){
     // autosomeMax=atoi(argv[argPos+1]);
     else if(strcmp(argv[argPos],"-minMaf")==0||strcmp(argv[argPos],"-maf")==0)
       minMaf=atof(argv[argPos+1]);
+    else if(strcmp(*argv,"-minLrt")==0||strcmp(*argv,"-lrt")==0)
+      minLrt=atof(*++argv);
+    else if(strcmp(*argv,"-minInd")==0||strcmp(*argv,"-mis")==0)
+      minInd=atoi(*++argv);
     else if(strcmp(argv[argPos],"-plink")==0){
       useGeno = 1;
       std::string p_str =string( argv[argPos+1]);
@@ -938,7 +1007,10 @@ int main(int argc, char *argv[]){
     // apply maf filter
     if(minMaf!=0.0)
       filterMinMaf(d,minMaf);
-    
+    if(minLrt!=0.0)
+      filterMinLrt(d,minLrt);
+    if(minInd!=0)
+      filterMiss(d,minInd);
 
     int K=getK(qname);
     int nSites=d.nSites;
