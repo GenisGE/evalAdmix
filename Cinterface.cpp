@@ -42,7 +42,8 @@ using namespace std;
 // evalAdmix version 0.96 improved reading of data for plink files so it can read big data. also improved memory usage by changing genotypes type from in to unsigned short int
 // evalAdmix version 0.961 fix small stupid bug in nonmultithreaded ngs version (there was an extra for loop across indivdiuals)
 // evalAdmix version 0.962 added -minLrt and -minInd filters for compatibility with NGSadmix fitlering. just copied a few functions from ngsadmix32.cpp
-const char* vers = "0.962";
+// evalAdmix version 0.963 add check to make sure it does not run with more threads than nIndsUse -1, which would get stuck
+const char* vers = "0.963";
 
 pthread_t *threads = NULL;
 pthread_t *threads1 = NULL;
@@ -907,6 +908,11 @@ int main(int argc, char *argv[]){
     }
     else{ // with threads (the cool way)
  
+      if(nThreads > (pars->nIndUse - 1)){
+        nThreads = pars->nIndUse - 1;
+        fprintf(stderr, "More threads than individuals this would get stuck, will run instead with %d threads\n", nThreads);
+      }
+
       fprintf(stderr, "Correcting frequencies with %d threads...",nThreads);
       
       NumJobs = (pars -> nIndUse) -1;
@@ -1131,6 +1137,10 @@ int main(int argc, char *argv[]){
     } 
       else{ // with threads (the cool way)
 
+      if(nThreads > (pars->nIndUse - 1)){
+        nThreads = pars->nIndUse - 1;
+        fprintf(stderr, "More threads than individuals this would get stuck, will run instead with %d threads\n", nThreads);
+      }
 
       fprintf(stderr, "Correcting frequencies with %d threads...",nThreads);
       
@@ -1225,4 +1235,3 @@ int main(int argc, char *argv[]){
 
   return(0);
 }
-

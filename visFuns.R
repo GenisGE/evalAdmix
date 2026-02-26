@@ -2,10 +2,10 @@ plotCorRes <- function(cor_mat, pop=NULL, ord=NULL, superpop=NULL,
                        title="Correlation of residuals", min_z=NA,max_z=NA, 
                        cex.main=1.5, cex.lab=1.5, cex.legend=1.5, color_palette=c("#001260", "#EAEDE9", "#601200"),
                        pop_labels = c(T,T), plot_legend = T, adjlab = 0.1, rotatelabpop=0, rotatelabsuperpop=0,lineswidth=1, lineswidthsuperpop=2,
-                       adjlabsuperpop=0.16,cex.lab.2 = 1.5){
+                       adjlabsuperpop=0.16,cex.lab.2 = 1.5, multipanel=FALSE){
   
-  op <- par(mfrow=c(1,1) ,mar=c(5,4,4,2) +0.1,xpd=F, oma=c(0,0,0,0))
-  on.exit(par(op))
+  #op <- par(mfrow=c(1,1) ,mar=c(5,4,4,2) +0.1,xpd=F, oma=c(0,0,0,0))
+  #on.exit(par(op))
   
   N <- dim(cor_mat)[1]
   
@@ -81,11 +81,15 @@ plotCorRes <- function(cor_mat, pop=NULL, ord=NULL, superpop=NULL,
   rampbreaks <- c(rb1, rb2)
   
   rlegend <- as.raster(matrix(rampcols, ncol=1)[length(rampcols):1,])
-  if(plot_legend){
-    layout(matrix(1:2,ncol=2), width = c(4,1),height = c(1,1))
-    par(mar=c(5,4,4,0),oma=c(1,4.5,2,0))
-  }else
-    par(mar=c(5,4,4,5),oma=c(1,4.5,2,0))
+
+  if(!multipanel){
+    if(plot_legend){
+      layout(matrix(1:2,ncol=2), width = c(4,1),height = c(1,1))
+      par(mar=c(5,4,4,0),oma=c(1,4.5,2,0))
+    }else
+      par(mar=c(5,4,4,5),oma=c(1,4.5,2,0))
+  }
+
   image(t(cor_mat), col=rampcols, breaks=rampbreaks,
         yaxt="n",xaxt="n", zlim=c(min_z,max_z),useRaster=T,
         main=title, 
