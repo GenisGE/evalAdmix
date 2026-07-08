@@ -5,6 +5,8 @@ evalAdmix allows to evaluate the results of an admixture analysis (i.e. the resu
 
 The output is a pairwise correlation of residuals matrix between individuals. The correlation will be close to 0 in case of a good fit of the data to the admixture model. When individuals do not fit the model, individuals with similar demographic histories (i.e. usually individuals from the same population) will be positively correlated; and individuals with different histories but that are modelled as sharing one or more ancestral populations as admixture sources will have a negative correlation. Positive correlation between a pair of individuals might also be due to relatedness.
 
+**Version 1.0** incorporates a new corrected estimator of the correlation of residuals (van Waaij et al. 2023). The original leave-one-out frequency correction method remains the default for backward compatibility, but the new method is recommended: it is faster (single-pass, no iterations) and does not require the ancestral frequency file as input — only genotypes and admixture proportions. If using the new method, please also cite van Waaij et al. 2023. See the `-method corrected` option below.
+
 More detailed documentation can be found in [the wiki page](http://www.popgen.dk/software/index.php/EvalAdmix).
 
 # Installation
@@ -30,6 +32,17 @@ With genotype likelihoods
 ./evalAdmix -beagle inputBeagleFile.gz -fname myoutfiles.fopt.gz -qname myoutfiles.qopt -P 10 -o output.corres.txt
 ```
 
+## Method selection (-method)
+
+`-method` selects the algorithm used to compute the correlation of residuals.
+
+  * `evalAdmix` (default): original leave-one-out frequency correction estimator (uses `-nIts` iterations of frequency re-estimation with one individual excluded at a time).
+  * `corrected`: new analytic bias-corrected estimator of van Waaij et al. (arXiv:2302.04596). Computes `b_hat − c_hat`, where `b_hat` is the empirical Pearson correlation of residuals after projecting genotypes onto the column space of the admixture proportions Q, and `c_hat` is the model-implied correlation obtained from `(I−P) D_hat (I−P)`. Single pass, no leave-one-out frequency correction; `-nIts` is ignored. Currently only supports `-plink` input.
+
+```
+./evalAdmix -plink inputPlinkPrefix -fname inputPlinkPrefix.K.P -qname inputPlinkPrefix.K.Q -method corrected -o output.corres.txt
+```
+
 You can find a tutorial with example input data in [the wiki page](http://www.popgen.dk/software/index.php/EvalAdmix#Run_command_example).
 
 ```
@@ -49,6 +62,7 @@ Arguments:
 	 Setup (optional):
 	 
 	       -P 1 number of threads
+	       -method evalAdmix	 either 'evalAdmix' (default, original leave-one-out frequency correction) or 'corrected' (new analytic bias-corrected correlation, plink input only)
 	       -autosomeMax 23	 autosome ends with this chromsome (needed only if using genotype input (-plink))
 	       -nIts 5	 number of iterations to do for frequency correction; if set to 0 calculates correlation without correction (fast but biased)
 	       -useSites 1.0	 proportion of sites to use to calculate correlation of residuals
@@ -78,10 +92,12 @@ Usage
 
 ```
 plotCorRes(cor_mat = cor_mat, pop=NULL, ord=NULL, superpop=NULL,
-                       	  title="Correlation of residuals", min_z=NA,max_z=NA, 
-                      	  cex.main=1.5, cex.lab=1.5, cex.legend=1.5, color_palette=c("#001260", "#EAEDE9", "#601200"),
-                     	  pop_labels = c(T,T), plot_legend = T, adjlab = 0.1, rotatelabpop=0, rotatelabsuperpop=0,lineswidth=1, lineswidthsuperpop=2,
-                       adjlabsuperpop=0.16,cex.lab.2 = 1.5)
+                       	  title="Correlation of residuals", min_z=NA,max_z=NA,
+                       	  cex.main=1.5, cex.lab=1.5, cex.legend=1.5, color_palette=c("#001260", "#EAEDE9", "#601200"),
+                      	  pop_labels = c(T,T), plot_legend = T, adjlab = 0.1, rotatelabpop=0, rotatelabsuperpop=0,lineswidth=1, lineswidthsuperpop=2,
+                       adjlabsuperpop=0.16,cex.lab.2 = 1.5,
+                        	  summary_triangle = "population_mean",
+                        	  summary_group = NULL)
 
 
 Arguments
@@ -91,6 +107,7 @@ cor_mat	Correlation of residuals matrix.
 
 Optional
 pop		Vector with individuals population criteria; will be used to group individuals and for mean correlation per population. Must have same length and order as there are individuals in correlation matrix.
+summary_group	Optional vector with a finer grouping than pop (e.g. site within transect). If provided, the lower-triangle mean correlations are computed at this level, while pop is used for labels and separator lines. Default NULL (uses pop).
 ord		Vector with individual indices specifying order to plot (can be generated with orderInds(q=q, pop=pop) or just order(pop) from base R. 
 superpop	Vector with individual superpopulation criteria, to group populations. Must be consisten with pop, only used for labelling.
 title		Plot title.
@@ -107,6 +124,55 @@ lineswidth lineswidthsuperpop	 Width of lines separating populations and superpo
 ```
 
 visFuns.R includes some other functions I find useful (order individuals, order ancestral populations, plot admixture proportions...).
+
+## Multi-panel plotting (plotCorResMulti)
+
+`plotCorResMulti` plots several correlation matrices side-by-side with a shared color scale and a single legend. It is designed for comparing results across different K values or different methods.
+
+```
+plotCorResMulti(cor_mats,
+                titles = names(cor_mats),
+                pop = NULL, ord = NULL, superpop = NULL,
+                nrow = NULL, ncol = NULL,
+                shared_scale = TRUE, label_outer = TRUE,
+                summary_triangle = "population_mean",
+                summary_group = NULL,
+                min_z = NA, max_z = NA,
+                cex.main = 1.5, cex.lab = 1.5, cex.legend = 1.5,
+                color_palette = c("#001260", "#EAEDE9", "#601200"),
+                pop_labels = c(TRUE, TRUE), plot_legend = TRUE,
+                adjlab = 0.1, rotatelabpop = 0,
+                lineswidth = 1, summarylineswidth = 0.5,
+                oma = c(4.5, 4.5, 2, 2), mar = c(1.5, 1.5, 2, 1.5))
+```
+
+Arguments
+
+Required
+cor_mats	A list of correlation matrices to plot side-by-side.
+
+Optional
+titles		Titles for each panel. Defaults to names(cor_mats) or "Panel 1", "Panel 2", ...
+pop		Population assignment vector (same length and order as individuals). Used for labels and separator lines.
+ord		Individual ordering (shared across all panels).
+shared_scale	If TRUE (default), all panels share the same min_z/max_z color scale.
+label_outer	If TRUE (default), population labels are drawn only on outer-margin panels (left column, bottom row).
+summary_group	Optional vector (same length as pop). If provided, the lower-triangle population means are computed at this grouping level (e.g. site within transect), while pop is used for labels and thicker separator lines.
+summarylineswidth	Line width for summary_group separator lines (default 0.5).
+oma, mar		Outer and inner margins (passed to par).
+All other arguments	As in plotCorRes (min_z, max_z, color_palette, pop_labels, etc.).
+
+Example
+
+```
+source("visFuns.R")
+pop <- as.vector(read.table("inputPlinkPrefix.fam")$V1)
+ord <- orderInds(pop=pop)
+r1 <- as.matrix(read.table("output_K3.corres.txt"))
+r2 <- as.matrix(read.table("output_K5.corres.txt"))
+plotCorResMulti(list(K3=r1, K5=r2), pop=pop, ord=ord, nrow=1,
+                min_z=-0.1, max_z=0.1)
+```
 
 
 
@@ -125,3 +191,12 @@ visFuns.R includes some other functions I find useful (order individuals, order 
 
 
 **IMPORTANT**: version 0.95 (updated on 30/06/2021) fixes a bug in the implementation for genotype data, which caused displacement of genotypes between samples when a site had missing data. When all sites have some missingness this would result in the last samples from the analyses having a correlation of nan with all other samples; but might have some more subtle effects whenever there is some level of missingness. If you have analyses based on genotype data with any missingness might be a good idea to re-run them after updating. The bug did not affect the genotype likelihoods implementation so if you based the analyses on genotype likelihoods you do not need to worry. If you applied it to gentoype data without any missingness you also do not need to worry.
+
+# Citation (new corrected method)
+
+
+[Evaluation of population structure inferred by principal component analysis or the admixture model](https://doi.org/10.1093/genetics/iyad157)
+Jan van Waaij, Song Li, Genís Garcia-Erill, Anders Albrechtsen, Carsten Wiuf
+Genetics, 2023, Volume 225, Issue 2
+
+[Pre-print version](https://arxiv.org/abs/2302.04596)

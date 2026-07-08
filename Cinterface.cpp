@@ -29,9 +29,9 @@
 
 #include "filereader_and_conversions.h"
 #include "extractors.h"
-#include "asort.h"
 #include "evalAdmix.h"
 #include "ngsevalAdmix.h"
+#include "evalAdmixCorrected.h"
 //#include "mafilter.h"
 
 
@@ -43,7 +43,8 @@ using namespace std;
 // evalAdmix version 0.961 fix small stupid bug in nonmultithreaded ngs version (there was an extra for loop across indivdiuals)
 // evalAdmix version 0.962 added -minLrt and -minInd filters for compatibility with NGSadmix fitlering. just copied a few functions from ngsadmix32.cpp
 // evalAdmix version 0.963 add check to make sure it does not run with more threads than nIndsUse -1, which would get stuck
-const char* vers = "0.963";
+// evalAdmix version 1.0 added -method corrected (analytic bias-corrected correlation of residuals, van Waaij et al. 2023); fixed -useInds indexing for both plink and beagle paths; fixed -minLrt/-minInd CLI parsing; fixed trailing tab in output; added plotCorResMulti in visFuns.R; memory leak fixes
+const char* vers = "1.0";
 
 pthread_t *threads = NULL;
 pthread_t *threads1 = NULL;
@@ -52,7 +53,6 @@ int NumJobs;
 int jobs;
 int *printArray;
 FILE *fp;
-int cunt;
 double misTol=0.05;
 #define LENS 100000 //this is the max number of bytes perline, should make bigger
 int SIG_COND =1;//if we catch signal then quit program nicely
@@ -328,11 +328,15 @@ void dalloc(bgl &b){
   for(int i=0;i<b.nSites;i++){
     delete [] b.genos[i];
     free(b.ids[i]);
+    delete [] b.keeps[i];
   }
   delete [] b.minor;
   delete [] b.major;
   delete [] b.genos;
   delete [] b.ids;
+  delete [] b.keeps;
+  delete [] b.keepInd;
+  delete [] b.mafs;
 }
 
 
@@ -471,6 +475,7 @@ void info(){
 
   fprintf(stderr,"Setup (optional):\n"); 
   fprintf(stderr,"\t-P 1 number of threads\n");
+  fprintf(stderr,"\t-method corrected\t either 'evalAdmix' (default, original leave-one-out frequency correction) or 'corrected' (new analytic bias-corrected correlation, plink input only)\n");
   //    fprintf(stderr,"\t-autosomeMax 23\t autosome ends with this chromsome (needed only if genotype (plink) input) \n");
   fprintf(stderr,"\t-nIts 5\t number of iterations to do for frequency correction; if set to 0 calculates correlation without correction (fast but biased)\n");
   fprintf(stderr,"\t-useSites 1.0\t proportion of sites to use to calculate correlation of residuals\n");
@@ -532,7 +537,7 @@ void *ngsfunctionC(void *a) //the a means nothing
     myNGSPars *pars=p.pars;
     int i=p.ind1;
 
-    ngsevalAdmix(p.cor,p.ind1u, p.ind1,pars->r,pars->mean_r,pars->genos,pars->K,pars->Q,pars->F,pars->nInd,pars->nSites,pars->nIts, pars->keeps, pars->nIndUse);
+    ngsevalAdmix(p.cor,p.ind1u, p.ind1,pars->r,pars->mean_r,pars->genos,pars->K,pars->Q,pars->F,pars->nInd,pars->nSites,pars->nIts, pars->keeps, pars->nIndUse, pars->useInds);
     
     //////////////////////////////////////////////
 
@@ -594,6 +599,7 @@ int main(int argc, char *argv[]){
   bool useGeno = 0;
   bool useGenoLikes = 0;
   double misTol=0.05; // min diff between max and min geno likes to consider site missing
+  std::string method = "evalAdmix";
 
   //parse arguments
   int argPos=1;
@@ -615,16 +621,16 @@ int main(int argc, char *argv[]){
     // autosomeMax=atoi(argv[argPos+1]);
     else if(strcmp(argv[argPos],"-minMaf")==0||strcmp(argv[argPos],"-maf")==0)
       minMaf=atof(argv[argPos+1]);
-    else if(strcmp(*argv,"-minLrt")==0||strcmp(*argv,"-lrt")==0)
-      minLrt=atof(*++argv);
-    else if(strcmp(*argv,"-minInd")==0||strcmp(*argv,"-mis")==0)
-      minInd=atoi(*++argv);
+    else if(strcmp(argv[argPos],"-minLrt")==0||strcmp(argv[argPos],"-lrt")==0)
+      minLrt=atof(argv[argPos+1]);
+    else if(strcmp(argv[argPos],"-minInd")==0||strcmp(argv[argPos],"-mis")==0)
+      minInd=atoi(argv[argPos+1]);
     else if(strcmp(argv[argPos],"-plink")==0){
       useGeno = 1;
       std::string p_str =string( argv[argPos+1]);
       if(p_str.length()>4){
-	std::string ext = p_str.substr(p_str.length()-4,p_str.length());
-	if (!ext.compare(".bed")||!ext.compare(".bim")||!ext.compare(".fam")){
+	std::string ext = p_str.substr(p_str.length()-4);
+	if (ext==".bed"||ext==".bim"||ext==".fam"){
 	  std::string front = p_str.substr(0,p_str.length()-4);
 	  plink_bim = (front+".bim");
 	  plink_fam = (front+".fam");
@@ -649,6 +655,8 @@ int main(int argc, char *argv[]){
     }
     else if(strcmp(argv[argPos],"-misTol")==0)
       misTol=atof(argv[argPos+1]);
+    else if(strcmp(argv[argPos],"-method")==0)
+      method = std::string(argv[argPos+1]);
     else{
       printf("\nArgument unknown will exit: %s \n",argv[argPos]);
       info();
@@ -671,6 +679,23 @@ int main(int argc, char *argv[]){
     info();
     return 0;
 
+  }
+  
+  // Method validation
+  if(method != "evalAdmix" && method != "corrected"){
+    fprintf(stderr, "Unknown -method '%s'. Valid options: 'evalAdmix' (default) or 'corrected'.\n", method.c_str());
+    return 0;
+  }
+  if(method == "corrected"){
+    if(useGenoLikes){
+      fprintf(stderr, "-method corrected currently only supports -plink (called genotypes). It does not yet support -beagle.\n");
+      return 0;
+    }
+    if(nIts != 5)
+      fprintf(stderr, "WARNING: -nIts is ignored when -method corrected (the correction is analytic; no leave-one-out frequency correction is performed).\n");
+    if(nThreads > 1)
+      fprintf(stderr, "WARNING: -method corrected does not use multithreading; running single-threaded regardless of -P %d.\n", nThreads);
+    fprintf(stderr, "NOTE: -minMaf / -minLrt / -minInd are beagle/NGSadmix-em filters and have no effect with -method corrected on -plink input.\n");
   }
   
   //check if files exists
@@ -711,13 +736,6 @@ int main(int argc, char *argv[]){
 
     }
     killArray(plinkKeep);
-    if(0){ //no need to sort, it's slow and uses lots of memory
-      fprintf(stdout,"\t-> sorting ");
-      fflush(stdout);
-      mysort(pars,0);
-      fprintf(stdout," - done \n");
-      fflush(stdout);
-    }
     // printf("Dimension of genodata:=(%d,%d), positions:=%d, chromosomes:=%d\n",pars->data->x,pars->data->y,pars->position->x,pars->chr->x);
     if(pars->data->y != pars->chr->x || pars->position->x != pars->data->y){
       printf("Dimension of data input doesn't have compatible dimensions, program will exit\n");
@@ -882,9 +900,17 @@ int main(int argc, char *argv[]){
     float *mean_r=new float[pars->nIndUse];
     
 
-    pars -> r = r;
+pars -> r = r;
     pars -> mean_r = mean_r;
     pars -> nIts = nIts;
+
+    if(method == "corrected"){
+      // New analytic bias-corrected correlation of residuals (van Waaij et al.)
+      // Single-pass, no leave-one-out frequency correction.
+      fprintf(stderr,"Computing corrected correlation of residuals (-method corrected)\n");
+      evalAdmixCorrected(cor, pars->genos, pars->isMissing, pars->Q, K, pars->nInd, pars->nSites, pars->nIndUse, pars->useInds);
+      fprintf(stderr,"Done computing corrected correlation\n");
+    } else {
     // Calculate unadapted residuals
     fprintf(stderr,"Going to calcualte normal residuals\n");
     calcRes(pars->r, pars->mean_r, pars->genos, pars-> Q, pars->F, K, pars->nSites, pars->nInd, pars->nIndUse, pars->isMissing, pars->useInds);
@@ -904,10 +930,10 @@ int main(int argc, char *argv[]){
 	  }
       }
 
- 
+  
     }
     else{ // with threads (the cool way)
- 
+  
       if(nThreads > (pars->nIndUse - 1)){
         nThreads = pars->nIndUse - 1;
         fprintf(stderr, "More threads than individuals this would get stuck, will run instead with %d threads\n", nThreads);
@@ -917,7 +943,6 @@ int main(int argc, char *argv[]){
       
       NumJobs = (pars -> nIndUse) -1;
       jobs =  (pars -> nIndUse) - 1;
-      cunt = 0;
       allPars = new eachPars[NumJobs];
 
       int b=0;
@@ -947,21 +972,23 @@ int main(int argc, char *argv[]){
      
 
     }
+    } // end else (method != corrected)
 
 
     fprintf(stderr, "\nFinished, going to write all correlations\n");
 
     for(int i=0;i<(pars->nIndUse);i++){
       for(int j=0;j<(pars->nIndUse);j++){
+	if(j>0) fprintf(fp,"\t");
 	if(i<j)
-	  fprintf(fp,"%f\t",cor[i][j]);
+	  fprintf(fp,"%f",cor[i][j]);
 	else if(i>j)
-	  fprintf(fp,"%f\t",cor[j][i]);
+	  fprintf(fp,"%f",cor[j][i]);
 	else if(i==j)
-	  fprintf(fp,"NA\t");
+	  fprintf(fp,"NA");
 
       }
-      
+
       fprintf(fp,"\n");
 
     }
@@ -971,34 +998,42 @@ int main(int argc, char *argv[]){
 
     // clean
 
-    
-    for(int j = 0; j < nSites; j++){ 
+    // Original F (always allocated, full size; alias of pars->F when useSites==1)
+    for(int j = 0; j < nSites; j++)
       delete[] F[j];
-      //    delete[] isMissing[j];
-      //delete[] genosT[j];
+
+    // Transposed genotype matrix and missing-data matrix (always allocated)
+    for(int j = 0; j < pars->nSites; j++){
+      delete[] pars->genos[j];
+      delete[] pars->isMissing[j];
+      if(useSites != 1.)
+	delete[] pars->F[j]; // downsampled newF
     }
-    
+    delete[] pars->genos;
+    delete[] pars->isMissing;
+    if(useSites != 1.)
+      delete[] pars->F;
 
     for(int i = 0; i < nInd; i++)
-    delete[] Q[i];
-    
+      delete[] Q[i];
+
+    delete[] pars->useInds;
+
     for(int i=0; i<(pars->nIndUse);i++){
       delete[] r[i];
       delete[] cor[i];
-
     }
-    
+
     delete[] F;
     delete[] Q;
-    
+
     delete[] r;
-    //delete[] isMissing;
-    //delete[] genosT;
     delete[] mean_r;
     delete[] cor;
     fclose(fp);
     delete[] allPars;
-    
+    delete pars;
+
   }// End of version with genotypes
 
   
@@ -1113,7 +1148,7 @@ int main(int argc, char *argv[]){
     double *mean_r=new double[pars->nIndUse];
 
     // Calculate unadapted residuals
-    ngscalcRes(r, mean_r, pars->F, pars-> Q,pars-> K, pars->nSites,pars-> nIndUse,pars->genos, pars-> keeps);
+    ngscalcRes(r, mean_r, pars->F, pars-> Q,pars-> K, pars->nSites,pars-> nIndUse,pars->genos, pars-> keeps, pars->useInds);
     fprintf(stderr, "Finished calculating normal residuals\n");
 
 
@@ -1129,7 +1164,7 @@ int main(int argc, char *argv[]){
 	  if(pars->useInds[i]){
 	    fprintf(stderr, "Estimating freqs without ind %d\r",i);
 	
-	    ngsevalAdmix(cor[u], u, i, pars->r, pars->mean_r, pars->genos, pars->K,pars->Q,pars->F,pars->nInd,pars->nSites,pars->nIts,pars->keeps, pars->nIndUse);
+	    ngsevalAdmix(cor[u], u, i, pars->r, pars->mean_r, pars->genos, pars->K,pars->Q,pars->F,pars->nInd,pars->nSites,pars->nIts,pars->keeps, pars->nIndUse, pars->useInds);
 	    u++;
 	    // }
 	}
@@ -1146,7 +1181,6 @@ int main(int argc, char *argv[]){
       
       NumJobs = (pars -> nIndUse)- 1;
       jobs = (pars -> nIndUse) - 1;
-      cunt = 0;
       allNGSPars = new eachNGSPars[NumJobs];
 
       int b=0;
@@ -1183,12 +1217,13 @@ int main(int argc, char *argv[]){
     // Prints correlation as nIndxnInd tab-delimited matrix, with NA in diagonal (self-correlation)
     for(int i=0;i<(pars->nIndUse);i++){
       for(int j=0;j<(pars->nIndUse);j++){
+	if(j>0) fprintf(fp,"\t");
 	if(i<j)
-	  fprintf(fp,"%f\t",cor[i][j]);
+	  fprintf(fp,"%f",cor[i][j]);
 	else if(i>j)
-	  fprintf(fp,"%f\t",cor[j][i]);
+	  fprintf(fp,"%f",cor[j][i]);
 	else if(i==j)
-	  fprintf(fp,"NA\t");
+	  fprintf(fp,"NA");
       }
       fprintf(fp,"\n");
 
@@ -1199,22 +1234,32 @@ int main(int argc, char *argv[]){
 
     dalloc(d);
 
-    for(int j = 0; j < nSites; j++){ 
+    // Original F (always allocated, full size; alias of pars->F when useSites==1)
+    for(int j = 0; j < nSites; j++)
       delete[] F[j];
+
+    // If downsampled: also free newGenos, newKeeps, newF now pointed to by pars
+    if(useSites != 1.){
+      for(int j = 0; j < pars->nSites; j++){
+	delete[] pars->genos[j];
+	delete[] pars->keeps[j];
+	delete[] pars->F[j];
+      }
+      delete[] pars->genos;
+      delete[] pars->keeps;
+      delete[] pars->F;
     }
 
-
-    for(int i = 0; i < nInd; i++){
+    for(int i = 0; i < nInd; i++)
       delete[] Q[i];
-   
-    }
+
+    delete[] pars->useInds;
 
     for(int i=0;i<(pars->nIndUse);i++){
-
       delete[] r[i];
       delete[] cor[i];
     }
-    
+
     delete[] F;
     delete[] Q;
     delete[] r;
@@ -1222,9 +1267,8 @@ int main(int argc, char *argv[]){
     delete[] cor;
     fclose(fp);
     delete[] allNGSPars;
+    delete pars;
 
-      
-    
   }
 
   fprintf(stderr, "\t[ALL done] cpu-time used =  %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);

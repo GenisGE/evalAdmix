@@ -10,36 +10,39 @@ double **allocDouble2b(size_t x,size_t y){
 }
 
 
-void adaptFandeG(double **F, double **Q, double **genos, int nSites, int nInd, int K, int withoutInd, char **keep, int nIts){
-  
+void adaptFandeG(double **F, double **Q, double **genos, int nSites, int nInd, int K, int withoutInd, char **keep, int nIts, int *useInd){
+
   for(int it=0; it<nIts; it++){
-    
+
     for(int j=0; j<nSites; j++){
 
-      
-	
+
+
 	double sumAG[K];
 	double sumBG[K];
-    
+
 	for(int k=0; k<K;k++){
 	  sumAG[k] = 0;
 	  sumBG[k] = 0;
 	}
 
 	for(int i=0; i<nInd;i++){
-	
+
 	  if(i == withoutInd)
+	    continue;
+
+	  if(!useInd[i])
 	    continue;
 
 	  if(keep[j][i] == 1){
 	    double fpart=0;
 	    double aNorm;
 	    double bNorm;
-	
+
 	    for(int k=0;k<K;k++){
 	      fpart+=F[j][k]*Q[i][k];
 	    }
-	
+
 	    aNorm = 1.0/fpart;
 	    bNorm = 1.0/(1-fpart);
 
@@ -48,75 +51,90 @@ void adaptFandeG(double **F, double **Q, double **genos, int nSites, int nInd, i
 	    double pp2=fpart*fpart*genos[j][3*i+0];
 	    double sum=pp0+pp1+pp2;
 	    double eG = (pp1+2*pp2)/sum;
-	  
+
 	    for(int k=0; k<K;k++){
 	      sumAG[k] += eG*F[j][k]*Q[i][k]*aNorm;
 	      sumBG[k] += (2-eG)*(1-F[j][k])*Q[i][k]*bNorm;
 	    }
-	
+
 	  }
 
 	}
 
 	for(int k=0;k<K;k++){
 	  F[j][k] = sumAG[k]/(sumAG[k]+sumBG[k]);
-	  F[j][k] = std::max(1e-6, std::min(F[j][k],0.999999)); // make sure value is in (1e6, 0.999999) interval 
+	  F[j][k] = std::max(1e-6, std::min(F[j][k],0.999999)); // make sure value is in (1e6, 0.999999) interval
 	    //if(F[j][k]<=0)
 	    //F[j][k] = 1e-6;
 	}
-	
-      }    
-    }  
+
+      }
+    }
 }
 
 
-void ngscalcRes(double **r, double *mean_r, double **F, double **Q, int K, int nSites, int nInd, double **genos, char **keep){
+void ngscalcRes(double **r, double *mean_r, double **F, double **Q, int K, int nSites, int nInd, double **genos, char **keep, int *useInd){
 
-  
+  // nInd here is the count of used individuals (nIndUse) passed by the caller;
+  // r/sum_r/usedSites/mean_r are all nInd-sized (= nIndUse-sized).
+  // Use orig[u] to map the u-th used individual to its raw index for
+  // genos/keep/Q/F lookups. useInd[] contains exactly nInd 1's; we iterate
+  // raw indices upward until we've collected nInd used individuals.
+
+  int *orig = new int[nInd];
+  for(int i=0, u=0; u < nInd; u++){
+    while(!useInd[i]) i++;
+    orig[u] = i;
+    i++;
+  }
+
   double sum_r[nInd];
   int usedSites[nInd];
-  
-  for(int i=0; i<nInd;i++){
-    sum_r[i] = 0;
-    usedSites[i] = 0;
+
+  for(int u=0; u<nInd; u++){
+    sum_r[u] = 0;
+    usedSites[u] = 0;
   }
-  
+
   for(int j=0; j<nSites;j++){
-    for(int i=0; i<nInd;i++){
+    for(int u=0; u<nInd; u++){
+      int i = orig[u];
        if(keep[j][i] == 1){
-	 
-	usedSites[i]++;
-	
+
+	usedSites[u]++;
+
 	double fpart=0;
-	
+
 	for(int k=0;k<K;k++){
 	  fpart+=F[j][k]*Q[i][k];
-	  
-	} 
+
+	}
 
 	double pp0=(1-fpart)*(1-fpart)*genos[j][3*i+2];
 	double pp1=2*(1-fpart)*fpart*genos[j][3*i+1];
 	double pp2=fpart*fpart*genos[j][3*i+0];
 	double sum=pp0+pp1+pp2;
 	double eG=(pp1+2*pp2)/sum;
-	
-	r[i][j] = eG - 2*fpart;
-	/*	if(isnan(r[i][j])){
+
+	r[u][j] = eG - 2*fpart;
+	/*	if(isnan(r[u][j])){
 
 	    fprintf(stderr, "nan in residual in site %i of individual %i when substracting ind freq of %.3f from expected geno %.3f \n",j,i,eG, fpart);
 	    // fprintf(stderr, "fpart is %.3f, sum ");
 	    exit(0);
-	    
+
 	    }*/
-	sum_r[i] += r[i][j];
+	sum_r[u] += r[u][j];
 
        }
     }
   }
 
 
-  for(int i=0; i<nInd;i++)
-      mean_r[i] = sum_r[i] / usedSites[i];
+  for(int u=0; u<nInd; u++)
+      mean_r[u] = sum_r[u] / usedSites[u];
+
+  delete[] orig;
 }
 
 
@@ -153,12 +171,22 @@ double correlateNGSRes(int nSites, double *r1, double *r2, double mean_r1, doubl
 }
 
 
-void ngsevalAdmix(double *cor, int ind1u, int ind1, double **r, double *mean_r, double **genos, int K, double **Q, double **F, int nInd, int nSites, int nIts, char **keep, int nIndUse){
+void ngsevalAdmix(double *cor, int ind1u, int ind1, double **r, double *mean_r, double **genos, int K, double **Q, double **F, int nInd, int nSites, int nIts, char **keep, int nIndUse, int *useInd){
 
 
   double **rAdapted=allocDouble2b(nIndUse, nSites);
   double *mean_rAdapted = new double[nIndUse];
   double **fAdapted=allocDouble2b(nSites,K);
+
+  // used->raw mapping (ind1 is raw; ind1u is used; we need ind2raw for the
+  // keep lookup inside correlateNGSRes, since r/rAdapted/mean_r/mean_rAdapted/
+  // cor are all nIndUse-sized but keep[...] is indexed by raw).
+  int *orig = new int[nIndUse];
+  for(int i=0, u=0; u < nIndUse; u++){
+    while(!useInd[i]) i++;
+    orig[u] = i;
+    i++;
+  }
 
 
   for(int j=0; j<nSites;j++){ // initial values for adapted F are normal F
@@ -169,35 +197,38 @@ void ngsevalAdmix(double *cor, int ind1u, int ind1, double **r, double *mean_r, 
   }
 
   if(nIts==0){
-    
-  for(int ind2=(ind1+1); ind2<nInd; ind2++){
-    cor[ind2] =  correlateNGSRes(nSites, r[ind1u], r[ind2], mean_r[ind1u], mean_r[ind2], keep, ind1, ind2);
+
+  for(int ind2u=(ind1u+1); ind2u<nIndUse; ind2u++){
+    int ind2raw = orig[ind2u];
+    cor[ind2u] =  correlateNGSRes(nSites, r[ind1u], r[ind2u], mean_r[ind1u], mean_r[ind2u], keep, ind1, ind2raw);
   }
 
   }
   else{
   // Estimate new f and calculate new residuals
-  adaptFandeG(fAdapted, Q, genos, nSites, nInd,K, ind1, keep, nIts);
-  ngscalcRes(rAdapted, mean_rAdapted, fAdapted, Q, K, nSites, nIndUse,  genos, keep);
- 
-  for(int ind2=(ind1+1); ind2<nInd; ind2++){
-    cor[ind2] =  correlateNGSRes(nSites, r[ind1], rAdapted[ind2], mean_r[ind1], mean_rAdapted[ind2], keep, ind1, ind2);
+  adaptFandeG(fAdapted, Q, genos, nSites, nInd,K, ind1, keep, nIts, useInd);
+  ngscalcRes(rAdapted, mean_rAdapted, fAdapted, Q, K, nSites, nIndUse,  genos, keep, useInd);
+
+  for(int ind2u=(ind1u+1); ind2u<nIndUse; ind2u++){
+    int ind2raw = orig[ind2u];
+    cor[ind2u] =  correlateNGSRes(nSites, r[ind1u], rAdapted[ind2u], mean_r[ind1u], mean_rAdapted[ind2u], keep, ind1, ind2raw);
   }
   }
 
   // Clean
 
-  for(int j = 0; j < nSites; j++){ 
+  for(int j = 0; j < nSites; j++){
     delete[] fAdapted[j];
 
   }
 
-  for(int i = 0; i < nInd; i++){
+  for(int i = 0; i < nIndUse; i++){
     delete[] rAdapted[i];
   }
- 
+
   delete[] fAdapted;
   delete[] rAdapted;
   delete[] mean_rAdapted;
- 
+  delete[] orig;
+
 }
